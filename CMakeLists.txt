@@ -22,7 +22,7 @@ if (${ENABLE_ASAN})
 endif ()
 
 
-# Setup SFML
+# Fetch SFML
 include(FetchContent)
 FetchContent_Declare(SFML
         GIT_REPOSITORY https://github.com/SFML/SFML.git
@@ -33,12 +33,22 @@ FetchContent_Declare(SFML
 FetchContent_MakeAvailable(SFML)
 
 
+# Fetch Entt
+FetchContent_Declare(Entt
+        GIT_REPOSITORY https://github.com/skypjack/entt.git
+        GIT_TAG v3.15.0
+        GIT_SHALLOW ON
+        EXCLUDE_FROM_ALL
+        SYSTEM)
+FetchContent_MakeAvailable(Entt)
+
+
 # Setup project's target
 set(PROJECT_TARGET main)
 add_executable(${PROJECT_TARGET})
 add_subdirectory(sources)
 target_compile_features(${PROJECT_TARGET} PRIVATE cxx_std_23)
-target_link_libraries(${PROJECT_TARGET} PRIVATE SFML::Graphics)
+target_link_libraries(${PROJECT_TARGET} PRIVATE SFML::Graphics EnTT::EnTT)
 set_target_properties(${PROJECT_TARGET} PROPERTIES UNITY_BUILD OFF)
 
 
