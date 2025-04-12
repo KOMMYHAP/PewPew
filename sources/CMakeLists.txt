@@ -1,0 +1,1 @@
+target_sources(${PROJECT_TARGET} PRIVATE main.cpp)
