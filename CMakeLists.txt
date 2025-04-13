@@ -43,13 +43,24 @@ FetchContent_Declare(Entt
 FetchContent_MakeAvailable(Entt)
 
 
+# Fetch GSL
+FetchContent_Declare(GSL
+        GIT_REPOSITORY https://github.com/microsoft/GSL.git
+        GIT_TAG v4.2.0
+        GIT_SHALLOW ON
+        EXCLUDE_FROM_ALL
+        SYSTEM)
+FetchContent_MakeAvailable(GSL)
+
+
 # Setup project's target
 set(PROJECT_TARGET main)
 add_executable(${PROJECT_TARGET})
 add_subdirectory(sources)
 target_compile_features(${PROJECT_TARGET} PRIVATE cxx_std_23)
-target_link_libraries(${PROJECT_TARGET} PRIVATE SFML::Graphics EnTT::EnTT)
+target_link_libraries(${PROJECT_TARGET} PRIVATE SFML::Graphics EnTT::EnTT GSL)
 set_target_properties(${PROJECT_TARGET} PROPERTIES UNITY_BUILD OFF)
+target_precompile_headers(${PROJECT_TARGET} PRIVATE sources/pch.h)
 
 
 # Copy dll to project's binary
