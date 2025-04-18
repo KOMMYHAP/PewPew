@@ -12,8 +12,8 @@ public:
     int32_t GetDrawCalls() const { return drawCalls; }
 
 private:
-    Ref<const GameMap *> _gameMap;
-    Ref<const EntityWorld *> _entities;
+    ConstRef<GameMap> _gameMap;
+    ConstRef<EntityWorld> _entities;
     std::vector<const sf::Drawable *> _drawableList;
     int32_t drawCalls{0};
 };
