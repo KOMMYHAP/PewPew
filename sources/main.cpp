@@ -35,6 +35,15 @@ void Update(EntityWorld &world, sf::Vector2f mapSize, sf::Time gameElapsedTime, 
     const float elapsedSeconds = frameElapsedTime.asSeconds();
     const float animationKey = std::sinf(gameElapsedTime.asSeconds());
 
+    bool ChangeColorBalls = false;
+
+    auto DampingSystem = [elapsedSeconds](VelocityComponent& vel) {
+        constexpr float dampingPerSecond = 0.8f;
+        const float damping = std::pow(dampingPerSecond, elapsedSeconds);
+        vel.dx *= damping;
+        vel.dy *= damping;
+        };
+
     auto MoveSystem = [elapsedSeconds](AABBComponent &aabb, const VelocityComponent vel) {
         aabb.rect.position.x += vel.dx * elapsedSeconds;
         aabb.rect.position.y += vel.dy * elapsedSeconds;
@@ -53,13 +62,14 @@ void Update(EntityWorld &world, sf::Vector2f mapSize, sf::Time gameElapsedTime, 
     };
 
     const auto colorOffset = static_cast<uint8_t>(std::lerp(0.0f, 255.0f, animationKey * 0.01f));
-    auto UpdateSpriteColorSystem = [colorOffset](SpriteComponent &sprite) {
+    auto UpdateSpriteColorSystem = [colorOffset](SpriteComponent& sprite) {
         sf::Color color = sprite.shape.getFillColor();
         color.r += colorOffset;
         color.g += colorOffset;
         color.b += colorOffset;
         sprite.shape.setFillColor(color);
-    };
+        };
+    
     auto MapCollisionSystem = [mapSize](AABBComponent &aabb, VelocityComponent &vel) {
         const sf::Vector2f offsetToPosition = aabb.rect.size / -2.0f;
         const sf::Vector2f center = aabb.rect.getCenter();
@@ -93,12 +103,27 @@ void Update(EntityWorld &world, sf::Vector2f mapSize, sf::Time gameElapsedTime, 
         position.y = aabb.rect.position.y;
     };
 
+    world.view<VelocityComponent>().each(DampingSystem);
     world.view<VelocityComponent, const InitialVelocityComponent>().each(MakeImpulseForStoppedEntitySystem);
     world.view<AABBComponent, const VelocityComponent>().each(MoveSystem);
     world.view<AABBComponent, VelocityComponent>().each(MapCollisionSystem);
     world.view<PositionComponent, const AABBComponent>().each(UpdatePositionSystem);
     world.view<const PositionComponent, SpriteComponent>().each(UpdateSpritePositionSystem);
-    world.view<SpriteComponent>().each(UpdateSpriteColorSystem);
+    if (ChangeColorBalls)
+    {
+        const auto colorOffset = static_cast<uint8_t>(std::lerp(0.0f, 255.0f, animationKey * 0.01f));
+        auto UpdateSpriteColorSystem = [colorOffset](SpriteComponent& sprite) {
+            sf::Color color = sprite.shape.getFillColor();
+            color.r += colorOffset;
+            color.g += colorOffset;
+            color.b += colorOffset;
+            sprite.shape.setFillColor(color);
+            };
+        world.view<SpriteComponent>().each(UpdateSpriteColorSystem);
+    }
+    
+    
+    
 }
 
 void Render(EntityWorld &world, sf::RenderTarget &renderTarget) {
@@ -113,13 +138,15 @@ int main() {
     const uint32_t seed = std::chrono::system_clock::now().time_since_epoch().count();
     std::default_random_engine generator{seed};
 
+    
+
     const sf::Vector2f windowSize{800.0f, 600.0f};
     EntityWorld world;
 
     std::uniform_real_distribution positionXDistribution{0.0f, windowSize.x};
     std::uniform_real_distribution positionYDistribution{0.0f, windowSize.y};
     std::uniform_real_distribution velocityDistribution{-200.0f, 200.0f};
-    std::uniform_int_distribution colorDistribution{0, 255};
+    std::uniform_int_distribution colorDistribution{0, 155};
     std::uniform_real_distribution radiusDistribution{3.0f, 10.0f};
     for (int i = 0; i < 1000; ++i) {
         const auto entity = world.create();
