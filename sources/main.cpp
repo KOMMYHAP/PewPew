@@ -21,10 +21,10 @@ void Update(EntityWorld &world, Entity camera, GameMap &map, sf::Time gameElapse
         vel.dy *= damping;
         };
 
-    auto MoveSystem = [elapsedSeconds](AABBComponent &aabb, const VelocityComponent vel) {
-        aabb.rect.position.x += vel.dx * elapsedSeconds;
-        aabb.rect.position.y += vel.dy * elapsedSeconds;
-    };
+    auto MoveSystem = [elapsedSeconds](PositionComponent& position, const VelocityComponent vel) {
+        position.x += vel.dx * elapsedSeconds;
+        position.y += vel.dy * elapsedSeconds;
+        };
 
     auto MakeImpulseForStoppedEntitySystem =
             [](VelocityComponent &vel, const InitialSpeedComponent initialVelocity) {
