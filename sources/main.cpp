@@ -169,7 +169,7 @@ int main() {
 
 
     // Setup spheres
-    for (int i = 0; i < 10000; ++i) {
+    /*for (int i = 0; i < 10000; ++i) {
         const auto entity = world.create();
         const PositionComponent position = world.emplace<PositionComponent>(
             entity, positionXDistribution(generator), positionYDistribution(generator));
@@ -191,7 +191,9 @@ int main() {
         const sf::FloatRect aabb{{position.x, position.y}, {sprite.shape.getRadius(), sprite.shape.getRadius()}};
         world.emplace<AABBComponent>(entity, aabb);
     }
+    */
 
+    const auto player = world.create();
 
     // Setup camera
     const auto camera = world.create();
