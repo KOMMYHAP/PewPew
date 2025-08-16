@@ -4,6 +4,12 @@
 using EntityWorld = entt::registry;
 using Entity = entt::entity;
 
+struct RectangleShapeComponent {
+    sf::RectangleShape shape;
+};
+
+struct PlayerComponent {};
+
 struct PositionComponent {
     float x;
     float y;

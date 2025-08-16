@@ -38,6 +38,9 @@ void Update(EntityWorld &world, Entity camera, GameMap &map, sf::Time gameElapse
         sprite.shape.setPosition({position.x, position.y});
     };
 
+    auto UpdateRectanglePositionSystem = [](const PositionComponent position, RectangleShapeComponent& sprite) {
+        sprite.shape.setPosition({ position.x, position.y });
+        };
     const auto colorOffset = static_cast<uint8_t>(std::lerp(0.0f, 255.0f, animationKey * 0.01f));
     auto UpdateSpriteColorSystem = [colorOffset](SpriteComponent& sprite) {
         sf::Color color = sprite.shape.getFillColor();
@@ -134,6 +137,7 @@ void Update(EntityWorld &world, Entity camera, GameMap &map, sf::Time gameElapse
     world.view<AABBComponent, const PositionComponent>().each(UpdateAABBSystem);
     world.view<PositionComponent, VelocityComponent, AABBComponent>().each(MapCollisionSystem);
     world.view<const PositionComponent, SpriteComponent>().each(UpdateSpritePositionSystem);
+    world.view<const PositionComponent, RectangleShapeComponent>().each(UpdateRectanglePositionSystem);
     world.view<SpriteComponent>().each(UpdateSpriteColorSystem);
 
     if (const PositionComponent *position = world.try_get<PositionComponent>(camera)) {
@@ -194,6 +198,27 @@ int main() {
     */
 
     const auto player = world.create();
+    {
+        const PositionComponent position = world.emplace<PositionComponent>(
+            player, 1000.f, 500.f);
+
+        RectangleShapeComponent &sprite = world.emplace<RectangleShapeComponent>(player);
+        sf::Color color = sf::Color::White;
+        sf::Vector2f size = {50.f,50.f};
+        sprite.shape.setSize(size);
+        sprite.shape.setFillColor(color);
+
+        world.emplace<DrawableComponent>(player, static_cast<const sf::Drawable*>(&sprite.shape));
+        sf::FloatRect aabb;
+        aabb.position.x = position.x;
+        aabb.position.y = position.y;
+        aabb.size.x = size.x;
+        aabb.size.y = size.y;
+        world.emplace<AABBComponent>(player, aabb);
+
+    }
+    
+
 
     // Setup camera
     const auto camera = world.create();
