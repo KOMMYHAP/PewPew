@@ -171,32 +171,6 @@ int main() {
     std::uniform_int_distribution colorDistribution{0, 155};
     std::uniform_real_distribution radiusDistribution{3.0f, 10.0f};
 
-
-    // Setup spheres
-    /*for (int i = 0; i < 10000; ++i) {
-        const auto entity = world.create();
-        const PositionComponent position = world.emplace<PositionComponent>(
-            entity, positionXDistribution(generator), positionYDistribution(generator));
-        const VelocityComponent velocity = world.emplace<VelocityComponent>(
-            entity, velocityDistribution(generator), velocityDistribution(generator));
-        world.emplace<InitialSpeedComponent>(entity, velocity.dx, velocity.dy);
-
-        SpriteComponent &sprite = world.emplace<SpriteComponent>(entity);
-        sf::Color color = sf::Color::White;
-        color.r = colorDistribution(generator);
-        color.g = colorDistribution(generator);
-        color.b = colorDistribution(generator);
-        sprite.shape.setPointCount(10);
-        sprite.shape.setFillColor(color);
-        sprite.shape.setRadius(radiusDistribution(generator));
-
-        world.emplace<DrawableComponent>(entity, static_cast<const sf::Drawable *>(&sprite.shape));
-
-        const sf::FloatRect aabb{{position.x, position.y}, {sprite.shape.getRadius(), sprite.shape.getRadius()}};
-        world.emplace<AABBComponent>(entity, aabb);
-    }
-    */
-
     const auto player = world.create();
     {
         const PositionComponent position = world.emplace<PositionComponent>(
@@ -215,14 +189,13 @@ int main() {
         aabb.size.x = size.x;
         aabb.size.y = size.y;
         world.emplace<AABBComponent>(player, aabb);
-
+        world.emplace<MoveControlComponent>(player, MoveControlComponent{});
     }
     
 
-
     // Setup camera
     const auto camera = world.create();
-    world.emplace<MoveControlComponent>(camera, MoveControlComponent{});
+    //world.emplace<MoveControlComponent>(camera, MoveControlComponent{});
     world.emplace<MoveSpeedComponent>(camera, sf::Vector2f{500.0f, 500.0f});
     world.emplace<VelocityComponent>(camera, 0.0f, 0.0f);
     world.emplace<PositionComponent>(camera, view.getCenter().x, view.getCenter().y);

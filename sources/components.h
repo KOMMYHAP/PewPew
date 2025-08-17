@@ -8,7 +8,6 @@ struct RectangleShapeComponent {
     sf::RectangleShape shape;
 };
 
-struct PlayerComponent {};
 
 struct PositionComponent {
     float x;
