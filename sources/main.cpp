@@ -190,14 +190,37 @@ int main() {
         aabb.size.y = size.y;
         world.emplace<AABBComponent>(player, aabb);
         world.emplace<MoveControlComponent>(player, MoveControlComponent{});
+        world.emplace<MoveSpeedComponent>(player, sf::Vector2f{ 500.0f, 500.0f });
+        world.emplace<VelocityComponent>(player, 0.0f, 0.0f);
     }
+
+    const auto checkObject = world.create();
+    {
+        const PositionComponent position = world.emplace<PositionComponent>(
+            checkObject, 500.f, 200.f);
+
+        RectangleShapeComponent &sprite = world.emplace<RectangleShapeComponent>(checkObject);
+        sf::Color color = sf::Color::Blue;
+        sf::Vector2f size = { 20.f,50.f };
+        sprite.shape.setSize(size);
+        sprite.shape.setFillColor(color);
+
+        world.emplace<DrawableComponent>(checkObject, static_cast<const sf::Drawable*>(&sprite.shape));
+        sf::FloatRect aabb;
+        aabb.position.x = position.x;
+        aabb.position.y = position.y;
+        aabb.size.x = size.x;
+        aabb.size.y = size.y;
+        world.emplace<AABBComponent>(checkObject, aabb);
+        
+
+    }
+    
     
 
     // Setup camera
     const auto camera = world.create();
-    //world.emplace<MoveControlComponent>(camera, MoveControlComponent{});
-    world.emplace<MoveSpeedComponent>(camera, sf::Vector2f{500.0f, 500.0f});
-    world.emplace<VelocityComponent>(camera, 0.0f, 0.0f);
+    
     world.emplace<PositionComponent>(camera, view.getCenter().x, view.getCenter().y);
     world.emplace<AABBComponent>(camera, sf::FloatRect{view.getCenter() - view.getSize() / 2.0f, view.getSize()});
 
