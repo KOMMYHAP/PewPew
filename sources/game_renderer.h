@@ -1,19 +1,16 @@
 #pragma once
-#include "game_map.h"
-#include "components.h"
+#include "game_camera.h"
 
 
 class GameRenderer {
 public:
-    GameRenderer(const GameMap &gameMap, const EntityWorld &entities);
+    GameRenderer(EntityWorld &entities);
 
-    void Draw(sf::RenderTarget &renderTarget);
+    void Draw(const GameCamera& camera, sf::RenderTarget &renderTarget);
 
-    int32_t GetDrawCalls() const { return drawCalls; }
+    int32_t GetDrawCalls() const { return _drawCalls; }
 
 private:
-    ConstRef<GameMap> _gameMap;
-    ConstRef<EntityWorld> _entities;
-    std::vector<const sf::Drawable *> _drawableList;
-    int32_t drawCalls{0};
+    Ref<EntityWorld> _world;
+    int32_t _drawCalls{0};
 };

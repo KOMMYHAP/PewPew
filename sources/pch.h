@@ -1,4 +1,6 @@
 #pragma once
+#include <random>
+#include <print>
 
 #include <SFML/Graphics.hpp>
 #include <entt/entt.hpp>
@@ -10,3 +12,6 @@ using Ref = gsl::strict_not_null<T*>;
 
 template<class T>
 using ConstRef = gsl::strict_not_null<std::add_const_t<T>*>;
+
+using EntityWorld = entt::registry;
+using Entity = entt::entity;

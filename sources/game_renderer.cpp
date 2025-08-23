@@ -1,25 +1,32 @@
 #include "game_renderer.h"
 
+#include "components/core_components.h"
+#include "components/sfml_components.h"
 
-GameRenderer::GameRenderer(const GameMap &gameMap, const EntityWorld &entities)
-    : _gameMap(&gameMap),
-      _entities(&entities) {
+GameRenderer::GameRenderer(EntityWorld &entities)
+    : _world(&entities) {
 }
 
-void GameRenderer::Draw(sf::RenderTarget &renderTarget) {
-    _drawableList.clear();
-    _entities->view<const AABBComponent, const DrawableComponent>().each(
-        [this](const AABBComponent &aabb, const DrawableComponent &drawable) {
-            if (!_gameMap->GetViewSpace().contains(aabb.rect.getCenter())) {
-                return;
-            }
+void GameRenderer::Draw(const GameCamera &camera, sf::RenderTarget &renderTarget) {
+    const sf::FloatRect viewSpace = camera.GetViewSpace();
+    auto CameraCullingSystem = [viewSpace, this](Entity entity, const PositionComponent position) {
+        if (!viewSpace.contains(position.position)) {
+            return;
+        }
+        _world->emplace<IsVisibleInCamera>(entity);
+    };
+    auto DrawVisibleSystem = [&renderTarget](const SfmlDrawableComponent drawable) {
+        renderTarget.draw(*drawable.drawable);
+    };
 
-            _drawableList.push_back(drawable.drawable);
-        });
+    // cleanup culling result from previous frame
+    _world->clear<IsVisibleInCamera>();
 
-    drawCalls = _drawableList.size();
-    renderTarget.setView(_gameMap->GetView());
-    for (const sf::Drawable *drawable: _drawableList) {
-        renderTarget.draw(*drawable);
-    }
+    // apply culling for the new frame
+    _world->view<const PositionComponent>().each(CameraCullingSystem);
+
+    // draw visible
+    const auto visibleItems = _world->view<const IsVisibleInCamera, const SfmlDrawableComponent>();
+    _drawCalls = visibleItems.size_hint();
+    visibleItems.each(DrawVisibleSystem);
 }
