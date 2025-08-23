@@ -212,8 +212,6 @@ int main() {
         aabb.size.x = size.x;
         aabb.size.y = size.y;
         world.emplace<AABBComponent>(checkObject, aabb);
-        
-
     }
     
     
@@ -228,11 +226,13 @@ int main() {
     window.setFramerateLimit(60);
     window.setKeyRepeatEnabled(false);
 
+    
     sf::Clock frameClock;
     uint64_t gameTime{0};
     while (window.isOpen()) {
         const sf::Time frameTime = frameClock.restart();
         std::println("FPS = {:.2f}", 1.0f / frameTime.asSeconds());
+        
         gameTime += frameTime.asMicroseconds();
 
         while (const std::optional event = window.pollEvent()) {
@@ -244,7 +244,11 @@ int main() {
         }
 
         Update(world, camera, map, sf::microseconds(gameTime), frameTime);
-
+        sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+        sf::Vector2f worldPos = window.mapPixelToCoords(mousePos);
+        std::println("({},{})", mousePos.x, mousePos.y);
+        float cos = mousePos.x;
+        
         window.clear();
         renderer.Draw(window);
         window.display();
