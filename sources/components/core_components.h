@@ -5,7 +5,7 @@ struct PositionComponent {
 };
 
 struct RotationComponent {
-    float radians;
+    sf::Angle angle;
 };
 
 struct ScaleComponent {

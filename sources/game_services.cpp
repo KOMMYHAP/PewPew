@@ -128,7 +128,7 @@ void GameServices::UpdateSfmlTransforms() {
         transform.transform->setPosition(position.position);
     };
     auto ApplyRotationSystem = [](const RotationComponent &rotation, const SfmlTransformableComponent &transform) {
-        transform.transform->setRotation(sf::radians(rotation.radians));
+        transform.transform->setRotation(rotation.angle);
     };
     auto ApplyScaleSystem = [](const ScaleComponent &scale, const SfmlTransformableComponent &transform) {
         transform.transform->setScale(scale.factor);
