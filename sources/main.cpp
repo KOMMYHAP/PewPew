@@ -57,7 +57,7 @@ int main() {
 
         {
             sf::Vector2i mousePosScreenSpace = sf::Mouse::getPosition(window);
-            sf::Vector2f mousePosWorldSpace = window.mapPixelToCoords(mousePosScreenSpace, view);
+            sf::Vector2f mousePosWorldSpace = window.mapPixelToCoords(mousePosScreenSpace, gameServices.GetCamera().GetView());
             std::println("({},{})", mousePosWorldSpace.x, mousePosWorldSpace.y);
             float x1 = mousePosWorldSpace.x;
             float y1 = mousePosWorldSpace.y;

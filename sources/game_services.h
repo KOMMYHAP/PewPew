@@ -11,6 +11,7 @@ public:
     void Render(sf::RenderTarget& target);
 
     EntityWorld& ModifyWorld() { return _world; }
+    const GameCamera& GetCamera() const { return _camera; }
 
 private:
     void UpdateGameLogic(sf::Time elapsedTime);
