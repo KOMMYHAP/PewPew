@@ -3,7 +3,9 @@
 struct PositionComponent {
     sf::Vector2f position;
 };
-
+struct WatchTargetComponent {
+    sf::Vector2f position;
+};
 struct RotationComponent {
     sf::Angle angle;
 };

@@ -32,6 +32,24 @@ void GameServices::UpdateGameLogic(sf::Time elapsedTime) {
     const float elapsedSeconds = elapsedTime.asSeconds();
     const auto inputEvents = _world.storage<InputEventComponent>().each();
 
+    auto WatchTargetRotationSystem = [](const PositionComponent& postitionFrom, const WatchTargetComponent& postitionTo, RotationComponent &rotation) {
+        
+        const float fromX = postitionFrom.position.x;
+        const float fromY = postitionFrom.position.y;
+        const float fromUpX = fromX;
+        const float fromUpY = fromY + 1.0f;
+        const sf::Vector2f from{ fromUpX - fromX, fromUpY - fromY};
+
+        const float toStartX = fromX;
+        const float toStartY = fromY;
+        const float toEndX = postitionTo.position.x;
+        const float toEndY = postitionTo.position.y;
+        const sf::Vector2f to{ toEndX - toStartX, toEndY - toStartY };
+
+        const sf::Angle rotationAngle = from.angleTo(to);
+        rotation.angle = rotationAngle;
+    };
+
     auto MoveSystem = [elapsedSeconds](PositionComponent &position, const VelocityComponent vel) {
         position.position += vel.delta * elapsedSeconds;
     };
@@ -121,6 +139,7 @@ void GameServices::UpdateGameLogic(sf::Time elapsedTime) {
     _world.view<VelocityComponent, const InitialSpeedComponent>().each(MakeImpulseForStoppedEntitySystem);
     _world.view<PositionComponent, const VelocityComponent>().each(MoveSystem);
     _world.view<PositionComponent, VelocityComponent, BoundingBoxComponent>().each(MapCollisionSystem);
+    _world.view<const PositionComponent, const WatchTargetComponent, RotationComponent>().each(WatchTargetRotationSystem);
 }
 
 void GameServices::UpdateSfmlTransforms() {

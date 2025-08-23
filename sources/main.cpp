@@ -7,14 +7,15 @@ int main() {
     GameServices gameServices{WindowSize};
     EntityWorld &world = gameServices.ModifyWorld();
 
-    RectangleShapeComponent *spritePlayer = nullptr; {
+    RectangleShapeComponent *spritePlayer = nullptr;
+    WatchTargetComponent* mouse = nullptr;
+    {
         const auto player = world.create();
         RectangleShapeComponent &sprite = world.emplace<RectangleShapeComponent>(player);
         spritePlayer = &sprite;
-
+        
         world.emplace<SfmlDrawableComponent>(player, static_cast<sf::Drawable *>(&sprite.shape));
         world.emplace<SfmlTransformableComponent>(player, static_cast<sf::Transformable *>(&sprite.shape));
-
         world.emplace<PositionComponent>(player, sf::Vector2f{450.0f, 350.0f});
         world.emplace<FillColorComponent>(player, sf::Color::White);
         world.emplace<BoundingBoxComponent>(player, sf::Vector2f{50.0f, 50.0f});
@@ -22,7 +23,11 @@ int main() {
         world.emplace<MoveControlComponent>(player, MoveControlComponent{});
         world.emplace<MoveSpeedComponent>(player, sf::Vector2f{50.0f, 50.0f});
         world.emplace<VelocityComponent>(player, sf::Vector2f{0.0f, 0.0f});
-    } {
+        WatchTargetComponent& watchTargetComponent = world.emplace<WatchTargetComponent>(player, sf::Vector2f{0.0f, 0.0f});
+        mouse = &watchTargetComponent;
+        world.emplace<RotationComponent>(player, sf::degrees(0));
+    } 
+    {
         const auto checkObject = world.create();
         RectangleShapeComponent &sprite = world.emplace<RectangleShapeComponent>(checkObject);
         world.emplace<SfmlDrawableComponent>(checkObject, static_cast<sf::Drawable *>(&sprite.shape));
@@ -53,34 +58,9 @@ int main() {
         gameServices.Update(frameTime);
         {
             sf::Vector2i mousePosScreenSpace = sf::Mouse::getPosition(window);
-            sf::Vector2f mousePosWorldSpace = window.mapPixelToCoords(mousePosScreenSpace,
-                                                                      gameServices.GetCamera().GetView());
-
+            sf::Vector2f mousePosWorldSpace = window.mapPixelToCoords(mousePosScreenSpace, gameServices.GetCamera().GetView());
+            mouse->position = mousePosWorldSpace;
             std::println("({},{})", mousePosWorldSpace.x, mousePosWorldSpace.y);
-
-            const float playerX = spritePlayer->shape.getPosition().x;
-            const float playerY = spritePlayer->shape.getPosition().y;
-            const float playerUpX = playerX;
-            const float playerUpY = playerY + 1.0f;
-            const sf::Vector2f player{playerUpX - playerX, playerUpY - playerY};
-
-            const float mouseStartX = playerX;
-            const float mouseStartY = playerY;
-            const float mouseEndX = mousePosWorldSpace.x;
-            const float mouseEndY = mousePosWorldSpace.y;
-            const sf::Vector2f mouse{mouseEndX - mouseStartX, mouseEndY - mouseStartY};
-
-            const sf::Angle rotationAngle = player.angleTo(mouse);
-            // float x1 = mouse.x;
-            // float y1 = mouse.y;
-            // float x2 = player.x;
-            // float y2 = player.y;
-            // float sqrtMouse = sqrt((x1 * x1) + (y1 * y1));
-            // float sqrtPlayer = sqrt((x2 * x2) + (y2 * y2));
-            // float cos = (((x1 * x2) + (y1 * y2)) / (sqrtMouse * sqrtPlayer));
-            // float rotationAnglef = acos(cos);
-            // const sf::Angle rotationAngle = sf::radians(rotationAnglef);
-            spritePlayer->shape.setRotation(rotationAngle);
         }
 
         window.clear();
