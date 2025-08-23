@@ -42,7 +42,7 @@ int main() {
     while (window.isOpen()) {
         const sf::Time frameTime = frameClock.restart();
 
-        while (const std::optional event = window.pollEvent()) {
+        while (std::optional event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) {
                 window.close();
             }
@@ -50,10 +50,12 @@ int main() {
             world.emplace<InputEventComponent>(entity, *std::move(event));
         }
 
-        gameServices.Update(frameTime); {
+        gameServices.Update(frameTime);
+        {
             sf::Vector2i mousePosScreenSpace = sf::Mouse::getPosition(window);
             sf::Vector2f mousePosWorldSpace = window.mapPixelToCoords(mousePosScreenSpace,
                                                                       gameServices.GetCamera().GetView());
+
             std::println("({},{})", mousePosWorldSpace.x, mousePosWorldSpace.y);
 
             const float playerX = spritePlayer->shape.getPosition().x;
@@ -68,15 +70,16 @@ int main() {
             const float mouseEndY = mousePosWorldSpace.y;
             const sf::Vector2f mouse{mouseEndX - mouseStartX, mouseEndY - mouseStartY};
 
-            float x1 = mouse.x;
-            float y1 = mouse.y;
-            float x2 = player.x;
-            float y2 = player.y;
-            float sqrtMouse = sqrt((x1 * x1) + (y1 * y1));
-            float sqrtPlayer = sqrt((x2 * x2) + (y2 * y2));
-            float cos = (((x1 * x2) + (y1 * y2)) / (sqrtMouse * sqrtPlayer));
-            float rotationAnglef = acos(cos);
-            const sf::Angle rotationAngle = sf::radians(rotationAnglef);
+            const sf::Angle rotationAngle = player.angleTo(mouse);
+            // float x1 = mouse.x;
+            // float y1 = mouse.y;
+            // float x2 = player.x;
+            // float y2 = player.y;
+            // float sqrtMouse = sqrt((x1 * x1) + (y1 * y1));
+            // float sqrtPlayer = sqrt((x2 * x2) + (y2 * y2));
+            // float cos = (((x1 * x2) + (y1 * y2)) / (sqrtMouse * sqrtPlayer));
+            // float rotationAnglef = acos(cos);
+            // const sf::Angle rotationAngle = sf::radians(rotationAnglef);
             spritePlayer->shape.setRotation(rotationAngle);
         }
 
