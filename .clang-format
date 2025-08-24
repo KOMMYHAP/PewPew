@@ -3,3 +3,5 @@ BasedOnStyle: Microsoft
 ColumnLimit: 0
 BreakConstructorInitializers: BeforeComma
 AllowShortFunctionsOnASingleLine: InlineOnly
+SeparateDefinitionBlocks: Always
+MaxEmptyLinesToKeep: 2

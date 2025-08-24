@@ -1,10 +1,13 @@
 #include "components/core_components.h"
+#include "components/physics_components.h"
 #include "components/sfml_components.h"
 #include "game_services.h"
 
 int main()
 {
+    static constexpr sf::Vector2f MapSize{10000.0f, 10000.0f};
     static constexpr sf::Vector2f WindowSize{800.0f, 600.0f};
+
     GameServices gameServices{WindowSize};
     EntityWorld &world = gameServices.ModifyWorld();
 
@@ -17,16 +20,15 @@ int main()
 
         world.emplace<SfmlDrawableComponent>(player, static_cast<sf::Drawable *>(&sprite.shape));
         world.emplace<SfmlTransformableComponent>(player, static_cast<sf::Transformable *>(&sprite.shape));
-        world.emplace<PositionComponent>(player, sf::Vector2f{450.0f, 350.0f});
         world.emplace<FillColorComponent>(player, sf::Color::White);
-        world.emplace<BoundingBoxComponent>(player, sf::Vector2f{50.0f, 50.0f});
         world.emplace<InvalidatedBoundingBoxTag>(player);
         world.emplace<MoveControlComponent>(player, MoveControlComponent{});
-        world.emplace<MoveSpeedComponent>(player, sf::Vector2f{50.0f, 50.0f});
+        world.emplace<MoveSpeedComponent>(player, 5.0f);
         world.emplace<VelocityComponent>(player, sf::Vector2f{0.0f, 0.0f});
         WatchTargetComponent &watchTargetComponent = world.emplace<WatchTargetComponent>(player, sf::Vector2f{0.0f, 0.0f});
         mouse = &watchTargetComponent;
         world.emplace<RotationComponent>(player, sf::degrees(0));
+        world.emplace<KinematicPhysicsObjectPrototype>(player, sf::Vector2f{0.0f, 0.0f}, sf::Vector2f{1.0f, 1.0f});
     }
     {
         const auto checkObject = world.create();
@@ -34,10 +36,9 @@ int main()
         world.emplace<SfmlDrawableComponent>(checkObject, static_cast<sf::Drawable *>(&sprite.shape));
         world.emplace<SfmlTransformableComponent>(checkObject, static_cast<sf::Transformable *>(&sprite.shape));
 
-        world.emplace<BoundingBoxComponent>(checkObject, sf::Vector2f{20.0f, 50.0f});
         world.emplace<InvalidatedBoundingBoxTag>(checkObject);
         world.emplace<FillColorComponent>(checkObject, sf::Color::Blue);
-        world.emplace<PositionComponent>(checkObject, sf::Vector2f{500.f, 200.f});
+        world.emplace<KinematicPhysicsObjectPrototype>(checkObject, sf::Vector2f{15.0f, 20.0f}, sf::Vector2f{1.0f, 5.0f});
     }
 
     sf::RenderWindow window{sf::VideoMode(static_cast<sf::Vector2u>(WindowSize)), "PewPew"};
@@ -68,6 +69,7 @@ int main()
         }
 
         window.clear();
+        window.setView(gameServices.GetCamera().GetView());
         gameServices.Render(window);
         window.display();
     }

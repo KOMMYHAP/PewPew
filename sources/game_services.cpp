@@ -1,25 +1,22 @@
 #include "game_services.h"
 
 #include "components/core_components.h"
+#include "components/physics_components.h"
 #include "components/sfml_components.h"
 
-namespace
-{
-constexpr sf::Vector2f MapSize{10000.0f, 10000.0f};
-}
-
 GameServices::GameServices(sf::Vector2f windowSize)
-    : _mapRect{MapSize / -2.0f, MapSize}
-    , _renderer{_world}
-    , _camera{_world, windowSize}
+    : _physicsWorld(_ecsWorld)
+    , _renderer{_ecsWorld, _physicsWorld}
+    , _camera{_ecsWorld, sf::Vector2f{0.0f, 0.0f}, sf::Vector2f{25.0f, 25.0f}}
 {
 }
 
 void GameServices::Update(sf::Time elapsedTime)
 {
+    _totalTime += elapsedTime;
     std::println("FPS = {:.2f}", 1.0f / elapsedTime.asSeconds());
 
-    _totalTime += elapsedTime;
+    _physicsWorld.Update(elapsedTime);
     UpdateGameLogic(elapsedTime);
     UpdateSfmlTransforms();
 
@@ -31,14 +28,14 @@ void GameServices::Render(sf::RenderTarget &target)
     _renderer.Draw(_camera, target);
 }
 
-void GameServices::UpdateGameLogic(sf::Time elapsedTime)
+void GameServices::UpdateGameLogic(sf::Time /*elapsedTime*/)
 {
-    const float elapsedSeconds = elapsedTime.asSeconds();
-    const auto inputEvents = _world.storage<InputEventComponent>().each();
+    const auto inputEvents = _ecsWorld.storage<InputEventComponent>().each();
 
-    auto WatchTargetRotationSystem = [](const PositionComponent &postitionFrom, const WatchTargetComponent &postitionTo, RotationComponent &rotation) {
-        const float fromX = postitionFrom.position.x;
-        const float fromY = postitionFrom.position.y;
+    auto WatchTargetRotationSystem = [](const PhysicsBody bodyFrom, const WatchTargetComponent &postitionTo, RotationComponent &rotation) {
+        b2Vec2 positionFrom = b2Body_GetPosition(bodyFrom.id);
+        const float fromX = positionFrom.x;
+        const float fromY = positionFrom.y;
         const float fromUpX = fromX;
         const float fromUpY = fromY + 1.0f;
         const sf::Vector2f from{fromUpX - fromX, fromUpY - fromY};
@@ -48,70 +45,19 @@ void GameServices::UpdateGameLogic(sf::Time elapsedTime)
         const float toEndX = postitionTo.position.x;
         const float toEndY = postitionTo.position.y;
         const sf::Vector2f to{toEndX - toStartX, toEndY - toStartY};
+        if (to == sf::Vector2f{})
+        {
+            return;
+        }
 
         const sf::Angle rotationAngle = from.angleTo(to);
         rotation.angle = rotationAngle;
     };
 
-    auto MoveSystem = [elapsedSeconds](PositionComponent &position, const VelocityComponent vel) {
-        position.position += vel.delta * elapsedSeconds;
+    auto MoveSystem = [](const PhysicsBody &body, const VelocityComponent vel) {
+        b2Body_SetLinearVelocity(body.id, b2Vec2{vel.delta.x, vel.delta.y});
     };
 
-    auto MakeImpulseForStoppedEntitySystem =
-        [](VelocityComponent &vel, const InitialSpeedComponent initialVelocity) {
-            if (vel.delta.lengthSquared() <= 1.f)
-            {
-                vel.delta = initialVelocity.delta;
-            }
-        };
-
-    const sf::FloatRect mapBoundaries = _mapRect;
-    auto MapCollisionSystem = [mapBoundaries](PositionComponent &pos, VelocityComponent &vel,
-                                              const BoundingBoxComponent &bbox) {
-        // Position is the center
-        const sf::Vector2f half = bbox.size * 0.5f;
-        sf::Vector2f center = pos.position;
-
-        const float minX = mapBoundaries.position.x + half.x;
-        const float minY = mapBoundaries.position.y + half.y;
-        const float maxX = mapBoundaries.position.x + mapBoundaries.size.x - half.x;
-        const float maxY = mapBoundaries.position.y + mapBoundaries.size.y - half.y;
-
-        bool collidedX = false;
-        bool collidedY = false;
-
-        if (center.x < minX)
-        {
-            center.x = minX;
-            collidedX = true;
-        }
-        else if (center.x > maxX)
-        {
-            center.x = maxX;
-            collidedX = true;
-        }
-
-        if (center.y < minY)
-        {
-            center.y = minY;
-            collidedY = true;
-        }
-        else if (center.y > maxY)
-        {
-            center.y = maxY;
-            collidedY = true;
-        }
-
-        if (collidedX || collidedY)
-        {
-            static constexpr float Attenuation = 0.9f;
-            if (collidedX)
-                vel.delta.x = -vel.delta.x * Attenuation;
-            if (collidedY)
-                vel.delta.y = -vel.delta.y * Attenuation;
-            pos.position = center; // snap inside after resolving velocity
-        }
-    };
     auto MoveControlSystem = [&inputEvents](MoveControlComponent &move) {
         for (auto &&[_, input] : inputEvents)
         {
@@ -134,41 +80,39 @@ void GameServices::UpdateGameLogic(sf::Time elapsedTime)
             }
         }
     };
-    auto ApplyMoveControlSystem = [](const MoveControlComponent control, const MoveSpeedComponent speed,
-                                     VelocityComponent &vel) {
-        vel = {};
+    auto ApplyMoveControlSystem = [](const MoveControlComponent control, const MoveSpeedComponent speed, VelocityComponent &vel) {
+        sf::Vector2f direction{};
         if (control.activeDirections[MoveControlComponent::Left])
         {
-            vel.delta.x -= speed.value.x;
+            direction.x = -1.0f;
         }
         if (control.activeDirections[MoveControlComponent::Right])
         {
-            vel.delta.x += speed.value.x;
+            direction.x = 1.0f;
         }
         if (control.activeDirections[MoveControlComponent::Up])
         {
-            vel.delta.y -= speed.value.y;
+            direction.y = -1.0f;
         }
         if (control.activeDirections[MoveControlComponent::Down])
         {
-            vel.delta.y += speed.value.y;
+            direction.y = 1.0f;
         }
+        vel.delta = direction * speed.value;
     };
 
-    _world.view<MoveControlComponent>().each(MoveControlSystem);
-    _world.clear<InputEventComponent>();
-    _world.view<const MoveControlComponent, const MoveSpeedComponent, VelocityComponent>().each(ApplyMoveControlSystem);
-
-    _world.view<VelocityComponent, const InitialSpeedComponent>().each(MakeImpulseForStoppedEntitySystem);
-    _world.view<PositionComponent, const VelocityComponent>().each(MoveSystem);
-    _world.view<PositionComponent, VelocityComponent, BoundingBoxComponent>().each(MapCollisionSystem);
-    _world.view<const PositionComponent, const WatchTargetComponent, RotationComponent>().each(WatchTargetRotationSystem);
+    _ecsWorld.view<MoveControlComponent>().each(MoveControlSystem);
+    _ecsWorld.clear<InputEventComponent>();
+    _ecsWorld.view<const MoveControlComponent, const MoveSpeedComponent, VelocityComponent>().each(ApplyMoveControlSystem);
+    _ecsWorld.view<const PhysicsBody, const VelocityComponent>().each(MoveSystem);
+    _ecsWorld.view<const PhysicsBody, const WatchTargetComponent, RotationComponent>().each(WatchTargetRotationSystem);
 }
 
 void GameServices::UpdateSfmlTransforms()
 {
-    auto ApplyPositionSystem = [](const PositionComponent position, const SfmlTransformableComponent &transform) {
-        transform.transform->setPosition(position.position);
+    auto ApplyPhysicsSystem = [](const PhysicsBody body, const SfmlTransformableComponent &transform) {
+        const b2Vec2 position = b2Body_GetPosition(body.id);
+        transform.transform->setPosition(sf::Vector2f{position.x, position.y});
     };
     auto ApplyRotationSystem = [](const RotationComponent &rotation, const SfmlTransformableComponent &transform) {
         transform.transform->setRotation(rotation.angle);
@@ -176,12 +120,12 @@ void GameServices::UpdateSfmlTransforms()
     auto ApplyScaleSystem = [](const ScaleComponent &scale, const SfmlTransformableComponent &transform) {
         transform.transform->setScale(scale.factor);
     };
-    auto ApplyBoundingBoxForCircleSystem = [](const BoundingBoxComponent &bbox, CircleShapeComponent &circle) {
-        const float radius = bbox.size.length() / 2.0f;
+    auto ApplyBoundingBoxForCircleSystem = [this](const PhysicsBody &body, CircleShapeComponent &circle) {
+        const float radius = _physicsWorld.GetBoundingBox(body.id).length() / 2.0f;
         circle.shape.setRadius(radius);
     };
-    auto ApplyBoundingBoxForRectangleSystem = [](const BoundingBoxComponent &bbox, RectangleShapeComponent &rectangle) {
-        rectangle.shape.setSize(bbox.size);
+    auto ApplyBoundingBoxForRectangleSystem = [this](const PhysicsBody &body, RectangleShapeComponent &rectangle) {
+        rectangle.shape.setSize(_physicsWorld.GetBoundingBox(body.id));
     };
     auto ApplyFillColorForCircleSystem = [](const FillColorComponent &color, CircleShapeComponent &rectangle) {
         rectangle.shape.setFillColor(color.color);
@@ -189,28 +133,26 @@ void GameServices::UpdateSfmlTransforms()
     auto ApplyFillColorForRectangleSystem = [](const FillColorComponent &color, RectangleShapeComponent &rectangle) {
         rectangle.shape.setFillColor(color.color);
     };
-    auto UpdateOriginSystem = [](const BoundingBoxComponent &bbox, const SfmlTransformableComponent &transform) {
-        transform.transform->setOrigin(bbox.size / 2.0f);
+    auto UpdateOriginSystem = [this](const PhysicsBody &body, const SfmlTransformableComponent &transform) {
+        transform.transform->setOrigin(_physicsWorld.GetBoundingBox(body.id) / 2.0f);
     };
-    auto UpdateCameraPositionSystem = [](const PositionComponent &position, SfmlViewComponent &view) {
-        view.view.setCenter(position.position);
+    auto UpdateCameraPositionSystem = [this](const PhysicsBody &body, SfmlViewComponent &view) {
+        view.view.setCenter(_physicsWorld.GetPosition(body.id));
     };
-    auto UpdateCameraSizeSystem = [](const BoundingBoxComponent &bbox, SfmlViewComponent &view) {
-        view.view.setSize(bbox.size);
+    auto UpdateCameraSizeSystem = [this](const PhysicsBody &body, SfmlViewComponent &view) {
+        view.view.setSize(_physicsWorld.GetBoundingBox(body.id));
     };
 
-    _world.view<const PositionComponent, const SfmlTransformableComponent>().each(ApplyPositionSystem);
-    _world.view<const RotationComponent, const SfmlTransformableComponent>().each(ApplyRotationSystem);
-    _world.view<const ScaleComponent, const SfmlTransformableComponent>().each(ApplyScaleSystem);
-    _world.view<const BoundingBoxComponent, CircleShapeComponent>().each(ApplyBoundingBoxForCircleSystem);
-    _world.view<const BoundingBoxComponent, RectangleShapeComponent>().each(ApplyBoundingBoxForRectangleSystem);
-    _world.view<const FillColorComponent, CircleShapeComponent>().each(ApplyFillColorForCircleSystem);
-    _world.view<const FillColorComponent, RectangleShapeComponent>().each(ApplyFillColorForRectangleSystem);
-    _world.view<const InvalidatedBoundingBoxTag, const BoundingBoxComponent, SfmlTransformableComponent>().each(
-        UpdateOriginSystem);
-    _world.view<const PositionComponent, SfmlViewComponent>().each(UpdateCameraPositionSystem);
-    _world.view<const InvalidatedBoundingBoxTag, const BoundingBoxComponent, SfmlViewComponent>().each(
-        UpdateCameraSizeSystem);
+    _ecsWorld.view<const PhysicsBody, const SfmlTransformableComponent>().each(ApplyPhysicsSystem);
+    _ecsWorld.view<const PhysicsBody, CircleShapeComponent>().each(ApplyBoundingBoxForCircleSystem);
+    _ecsWorld.view<const PhysicsBody, RectangleShapeComponent>().each(ApplyBoundingBoxForRectangleSystem);
+    _ecsWorld.view<const RotationComponent, const SfmlTransformableComponent>().each(ApplyRotationSystem);
+    _ecsWorld.view<const ScaleComponent, const SfmlTransformableComponent>().each(ApplyScaleSystem);
+    _ecsWorld.view<const FillColorComponent, CircleShapeComponent>().each(ApplyFillColorForCircleSystem);
+    _ecsWorld.view<const FillColorComponent, RectangleShapeComponent>().each(ApplyFillColorForRectangleSystem);
+    _ecsWorld.view<const InvalidatedBoundingBoxTag, const PhysicsBody, SfmlTransformableComponent>().each(UpdateOriginSystem);
+    _ecsWorld.view<const PhysicsBody, SfmlViewComponent>().each(UpdateCameraPositionSystem);
+    _ecsWorld.view<const InvalidatedBoundingBoxTag, const PhysicsBody, SfmlViewComponent>().each(UpdateCameraSizeSystem);
 
-    _world.clear<InvalidatedBoundingBoxTag>();
+    _ecsWorld.clear<InvalidatedBoundingBoxTag>();
 }

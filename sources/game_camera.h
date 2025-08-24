@@ -3,7 +3,7 @@
 class GameCamera
 {
   public:
-    GameCamera(EntityWorld &world, sf::Vector2f windowSize);
+    GameCamera(EntityWorld &world, sf::Vector2f position, sf::Vector2f cameraSize);
 
     sf::FloatRect GetViewSpace() const;
     const sf::View &GetView() const { return *_view; }

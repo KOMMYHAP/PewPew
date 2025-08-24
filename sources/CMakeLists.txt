@@ -6,6 +6,8 @@ target_sources(${PROJECT_TARGET} PRIVATE
         game_camera.h
         game_services.h
         game_services.cpp
+        physics_world.h
+        physics_world.cpp
 )
 
 add_subdirectory(components)

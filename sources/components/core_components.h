@@ -1,11 +1,6 @@
 #pragma once
 
-struct PositionComponent
-{
-    sf::Vector2f position;
-};
-struct WatchTargetComponent
-{
+struct WatchTargetComponent {
     sf::Vector2f position;
 };
 struct RotationComponent
@@ -28,10 +23,9 @@ struct InitialSpeedComponent
     sf::Vector2f delta;
 };
 
-struct BoundingBoxComponent
-{
-    sf::Vector2f size;
-};
+// struct BoundingBoxComponent {
+//     sf::Vector2f size;
+// };
 
 struct InvalidatedBoundingBoxTag
 {
@@ -52,7 +46,7 @@ struct MoveControlComponent
 
 struct MoveSpeedComponent
 {
-    sf::Vector2f value;
+    float value;
 };
 
 struct IsVisibleInCamera

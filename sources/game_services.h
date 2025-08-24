@@ -1,6 +1,7 @@
 #pragma once
 #include "game_camera.h"
 #include "game_renderer.h"
+#include "physics_world.h"
 
 class GameServices
 {
@@ -10,7 +11,7 @@ class GameServices
     void Update(sf::Time elapsedTime);
     void Render(sf::RenderTarget &target);
 
-    EntityWorld &ModifyWorld() { return _world; }
+    EntityWorld &ModifyWorld() { return _ecsWorld; }
     const GameCamera &GetCamera() const { return _camera; }
 
   private:
@@ -18,9 +19,9 @@ class GameServices
     void UpdateSfmlTransforms();
 
   private:
-    sf::FloatRect _mapRect;
     sf::Time _totalTime;
-    EntityWorld _world;
+    EntityWorld _ecsWorld;
+    PhysicsWorld _physicsWorld;
     GameRenderer _renderer;
     GameCamera _camera;
 };
