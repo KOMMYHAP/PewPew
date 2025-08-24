@@ -1,31 +1,36 @@
 #pragma once
 
-
-struct RectangleShapeComponent {
+struct RectangleShapeComponent
+{
     sf::RectangleShape shape;
 };
 
-
-struct CircleShapeComponent {
+struct CircleShapeComponent
+{
     sf::CircleShape shape;
 };
 
-struct FillColorComponent {
+struct FillColorComponent
+{
     sf::Color color;
 };
 
-struct SfmlDrawableComponent {
+struct SfmlDrawableComponent
+{
     sf::Drawable *drawable;
 };
 
-struct SfmlTransformableComponent {
+struct SfmlTransformableComponent
+{
     sf::Transformable *transform;
 };
 
-struct SfmlViewComponent {
+struct SfmlViewComponent
+{
     sf::View view;
 };
 
-struct InputEventComponent {
+struct InputEventComponent
+{
     sf::Event event;
 };

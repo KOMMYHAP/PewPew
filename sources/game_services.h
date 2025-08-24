@@ -2,22 +2,22 @@
 #include "game_camera.h"
 #include "game_renderer.h"
 
-
-class GameServices {
-public:
+class GameServices
+{
+  public:
     GameServices(sf::Vector2f windowSize);
 
     void Update(sf::Time elapsedTime);
-    void Render(sf::RenderTarget& target);
+    void Render(sf::RenderTarget &target);
 
-    EntityWorld& ModifyWorld() { return _world; }
-    const GameCamera& GetCamera() const { return _camera; }
+    EntityWorld &ModifyWorld() { return _world; }
+    const GameCamera &GetCamera() const { return _camera; }
 
-private:
+  private:
     void UpdateGameLogic(sf::Time elapsedTime);
     void UpdateSfmlTransforms();
 
-private:
+  private:
     sf::FloatRect _mapRect;
     sf::Time _totalTime;
     EntityWorld _world;

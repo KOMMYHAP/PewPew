@@ -1,10 +1,11 @@
 #include "game_services.h"
 
-#include "components/sfml_components.h"
 #include "components/core_components.h"
+#include "components/sfml_components.h"
 
-namespace {
-    constexpr sf::Vector2f MapSize{10000.0f, 10000.0f};
+namespace
+{
+constexpr sf::Vector2f MapSize{10000.0f, 10000.0f};
 }
 
 GameServices::GameServices(sf::Vector2f windowSize)
@@ -14,7 +15,8 @@ GameServices::GameServices(sf::Vector2f windowSize)
 {
 }
 
-void GameServices::Update(sf::Time elapsedTime) {
+void GameServices::Update(sf::Time elapsedTime)
+{
     std::println("FPS = {:.2f}", 1.0f / elapsedTime.asSeconds());
 
     _totalTime += elapsedTime;
@@ -24,27 +26,28 @@ void GameServices::Update(sf::Time elapsedTime) {
     std::fflush(stdout);
 }
 
-void GameServices::Render(sf::RenderTarget &target) {
+void GameServices::Render(sf::RenderTarget &target)
+{
     _renderer.Draw(_camera, target);
 }
 
-void GameServices::UpdateGameLogic(sf::Time elapsedTime) {
+void GameServices::UpdateGameLogic(sf::Time elapsedTime)
+{
     const float elapsedSeconds = elapsedTime.asSeconds();
     const auto inputEvents = _world.storage<InputEventComponent>().each();
 
-    auto WatchTargetRotationSystem = [](const PositionComponent& postitionFrom, const WatchTargetComponent& postitionTo, RotationComponent &rotation) {
-        
+    auto WatchTargetRotationSystem = [](const PositionComponent &postitionFrom, const WatchTargetComponent &postitionTo, RotationComponent &rotation) {
         const float fromX = postitionFrom.position.x;
         const float fromY = postitionFrom.position.y;
         const float fromUpX = fromX;
         const float fromUpY = fromY + 1.0f;
-        const sf::Vector2f from{ fromUpX - fromX, fromUpY - fromY};
+        const sf::Vector2f from{fromUpX - fromX, fromUpY - fromY};
 
         const float toStartX = fromX;
         const float toStartY = fromY;
         const float toEndX = postitionTo.position.x;
         const float toEndY = postitionTo.position.y;
-        const sf::Vector2f to{ toEndX - toStartX, toEndY - toStartY };
+        const sf::Vector2f to{toEndX - toStartX, toEndY - toStartY};
 
         const sf::Angle rotationAngle = from.angleTo(to);
         rotation.angle = rotationAngle;
@@ -55,11 +58,12 @@ void GameServices::UpdateGameLogic(sf::Time elapsedTime) {
     };
 
     auto MakeImpulseForStoppedEntitySystem =
-            [](VelocityComponent &vel, const InitialSpeedComponent initialVelocity) {
-        if (vel.delta.lengthSquared() <= 1.f) {
-            vel.delta = initialVelocity.delta;
-        }
-    };
+        [](VelocityComponent &vel, const InitialSpeedComponent initialVelocity) {
+            if (vel.delta.lengthSquared() <= 1.f)
+            {
+                vel.delta = initialVelocity.delta;
+            }
+        };
 
     const sf::FloatRect mapBoundaries = _mapRect;
     auto MapCollisionSystem = [mapBoundaries](PositionComponent &pos, VelocityComponent &vel,
@@ -76,30 +80,52 @@ void GameServices::UpdateGameLogic(sf::Time elapsedTime) {
         bool collidedX = false;
         bool collidedY = false;
 
-        if (center.x < minX) { center.x = minX; collidedX = true; }
-        else if (center.x > maxX) { center.x = maxX; collidedX = true; }
+        if (center.x < minX)
+        {
+            center.x = minX;
+            collidedX = true;
+        }
+        else if (center.x > maxX)
+        {
+            center.x = maxX;
+            collidedX = true;
+        }
 
-        if (center.y < minY) { center.y = minY; collidedY = true; }
-        else if (center.y > maxY) { center.y = maxY; collidedY = true; }
+        if (center.y < minY)
+        {
+            center.y = minY;
+            collidedY = true;
+        }
+        else if (center.y > maxY)
+        {
+            center.y = maxY;
+            collidedY = true;
+        }
 
-        if (collidedX || collidedY) {
+        if (collidedX || collidedY)
+        {
             static constexpr float Attenuation = 0.9f;
-            if (collidedX) vel.delta.x = -vel.delta.x * Attenuation;
-            if (collidedY) vel.delta.y = -vel.delta.y * Attenuation;
+            if (collidedX)
+                vel.delta.x = -vel.delta.x * Attenuation;
+            if (collidedY)
+                vel.delta.y = -vel.delta.y * Attenuation;
             pos.position = center; // snap inside after resolving velocity
         }
     };
     auto MoveControlSystem = [&inputEvents](MoveControlComponent &move) {
-        for (auto &&[_, input]: inputEvents) {
+        for (auto &&[_, input] : inputEvents)
+        {
             const sf::Event &event = input.event;
-            if (const sf::Event::KeyPressed *keyPressed = event.getIf<sf::Event::KeyPressed>(); keyPressed) {
+            if (const sf::Event::KeyPressed *keyPressed = event.getIf<sf::Event::KeyPressed>(); keyPressed)
+            {
                 const sf::Keyboard::Key code = keyPressed->code;
                 move.activeDirections[MoveControlComponent::Left] |= code == sf::Keyboard::Key::A;
                 move.activeDirections[MoveControlComponent::Right] |= code == sf::Keyboard::Key::D;
                 move.activeDirections[MoveControlComponent::Up] |= code == sf::Keyboard::Key::W;
                 move.activeDirections[MoveControlComponent::Down] |= code == sf::Keyboard::Key::S;
             }
-            if (const sf::Event::KeyReleased *keyReleased = event.getIf<sf::Event::KeyReleased>(); keyReleased) {
+            if (const sf::Event::KeyReleased *keyReleased = event.getIf<sf::Event::KeyReleased>(); keyReleased)
+            {
                 const sf::Keyboard::Key code = keyReleased->code;
                 move.activeDirections[MoveControlComponent::Left] &= code != sf::Keyboard::Key::A;
                 move.activeDirections[MoveControlComponent::Right] &= code != sf::Keyboard::Key::D;
@@ -111,16 +137,20 @@ void GameServices::UpdateGameLogic(sf::Time elapsedTime) {
     auto ApplyMoveControlSystem = [](const MoveControlComponent control, const MoveSpeedComponent speed,
                                      VelocityComponent &vel) {
         vel = {};
-        if (control.activeDirections[MoveControlComponent::Left]) {
+        if (control.activeDirections[MoveControlComponent::Left])
+        {
             vel.delta.x -= speed.value.x;
         }
-        if (control.activeDirections[MoveControlComponent::Right]) {
+        if (control.activeDirections[MoveControlComponent::Right])
+        {
             vel.delta.x += speed.value.x;
         }
-        if (control.activeDirections[MoveControlComponent::Up]) {
+        if (control.activeDirections[MoveControlComponent::Up])
+        {
             vel.delta.y -= speed.value.y;
         }
-        if (control.activeDirections[MoveControlComponent::Down]) {
+        if (control.activeDirections[MoveControlComponent::Down])
+        {
             vel.delta.y += speed.value.y;
         }
     };
@@ -135,7 +165,8 @@ void GameServices::UpdateGameLogic(sf::Time elapsedTime) {
     _world.view<const PositionComponent, const WatchTargetComponent, RotationComponent>().each(WatchTargetRotationSystem);
 }
 
-void GameServices::UpdateSfmlTransforms() {
+void GameServices::UpdateSfmlTransforms()
+{
     auto ApplyPositionSystem = [](const PositionComponent position, const SfmlTransformableComponent &transform) {
         transform.transform->setPosition(position.position);
     };

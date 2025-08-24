@@ -1,19 +1,20 @@
-#include "game_services.h"
 #include "components/core_components.h"
 #include "components/sfml_components.h"
+#include "game_services.h"
 
-int main() {
+int main()
+{
     static constexpr sf::Vector2f WindowSize{800.0f, 600.0f};
     GameServices gameServices{WindowSize};
     EntityWorld &world = gameServices.ModifyWorld();
 
     RectangleShapeComponent *spritePlayer = nullptr;
-    WatchTargetComponent* mouse = nullptr;
+    WatchTargetComponent *mouse = nullptr;
     {
         const auto player = world.create();
         RectangleShapeComponent &sprite = world.emplace<RectangleShapeComponent>(player);
         spritePlayer = &sprite;
-        
+
         world.emplace<SfmlDrawableComponent>(player, static_cast<sf::Drawable *>(&sprite.shape));
         world.emplace<SfmlTransformableComponent>(player, static_cast<sf::Transformable *>(&sprite.shape));
         world.emplace<PositionComponent>(player, sf::Vector2f{450.0f, 350.0f});
@@ -23,10 +24,10 @@ int main() {
         world.emplace<MoveControlComponent>(player, MoveControlComponent{});
         world.emplace<MoveSpeedComponent>(player, sf::Vector2f{50.0f, 50.0f});
         world.emplace<VelocityComponent>(player, sf::Vector2f{0.0f, 0.0f});
-        WatchTargetComponent& watchTargetComponent = world.emplace<WatchTargetComponent>(player, sf::Vector2f{0.0f, 0.0f});
+        WatchTargetComponent &watchTargetComponent = world.emplace<WatchTargetComponent>(player, sf::Vector2f{0.0f, 0.0f});
         mouse = &watchTargetComponent;
         world.emplace<RotationComponent>(player, sf::degrees(0));
-    } 
+    }
     {
         const auto checkObject = world.create();
         RectangleShapeComponent &sprite = world.emplace<RectangleShapeComponent>(checkObject);
@@ -44,11 +45,14 @@ int main() {
     window.setKeyRepeatEnabled(false);
 
     sf::Clock frameClock;
-    while (window.isOpen()) {
+    while (window.isOpen())
+    {
         const sf::Time frameTime = frameClock.restart();
 
-        while (std::optional event = window.pollEvent()) {
-            if (event->is<sf::Event::Closed>()) {
+        while (std::optional event = window.pollEvent())
+        {
+            if (event->is<sf::Event::Closed>())
+            {
                 window.close();
             }
             const auto entity = world.create();

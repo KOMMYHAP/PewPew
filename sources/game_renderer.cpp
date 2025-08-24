@@ -4,13 +4,16 @@
 #include "components/sfml_components.h"
 
 GameRenderer::GameRenderer(EntityWorld &entities)
-    : _world(&entities) {
+    : _world(&entities)
+{
 }
 
-void GameRenderer::Draw(const GameCamera &camera, sf::RenderTarget &renderTarget) {
+void GameRenderer::Draw(const GameCamera &camera, sf::RenderTarget &renderTarget)
+{
     const sf::FloatRect viewSpace = camera.GetViewSpace();
     auto CameraCullingSystem = [viewSpace, this](Entity entity, const PositionComponent position) {
-        if (!viewSpace.contains(position.position)) {
+        if (!viewSpace.contains(position.position))
+        {
             return;
         }
         _world->emplace<IsVisibleInCamera>(entity);
