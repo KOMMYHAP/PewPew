@@ -36,16 +36,18 @@ sf::Vector2f PhysicsWorld::GetPosition(b2BodyId id) const
 
 void PhysicsWorld::UpdatePhysics(sf::Time elapsedTime)
 {
-    static constexpr sf::Time PhysicsStepTime = sf::milliseconds(15);
+    static constexpr sf::Time PhysicsStepTime = sf::milliseconds(10);
     static constexpr int PhysicsSubStepsCount = 4;
     sf::Time physicsElapsedTime = elapsedTime - PhysicsStepTime + _physicAccumulatedErrorTime;
-    _physicAccumulatedErrorTime = sf::Time::Zero;
+    int physicsStepsCount = 0;
     while (physicsElapsedTime > PhysicsStepTime)
     {
         b2World_Step(_physicsWorldId, PhysicsStepTime.asSeconds(), PhysicsSubStepsCount);
         physicsElapsedTime -= PhysicsStepTime;
+        physicsStepsCount += 1;
     }
-    _physicAccumulatedErrorTime += physicsElapsedTime;
+    _physicAccumulatedErrorTime = physicsElapsedTime;
+    std::println("Physics steps = {}", physicsStepsCount);
 }
 
 void PhysicsWorld::UpdateEcsPhysics()
