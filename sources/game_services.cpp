@@ -64,37 +64,30 @@ void GameServices::UpdateGameLogic(sf::Time elapsedTime) {
     const sf::FloatRect mapBoundaries = _mapRect;
     auto MapCollisionSystem = [mapBoundaries](PositionComponent &pos, VelocityComponent &vel,
                                               const BoundingBoxComponent &bbox) {
-        const sf::Vector2f center = pos.position;
-        if (mapBoundaries.contains(center)) {
-            return;
-        }
+        // Position is the center
+        const sf::Vector2f half = bbox.size * 0.5f;
+        sf::Vector2f center = pos.position;
 
-        const float minX = mapBoundaries.position.x;
-        const float minY = mapBoundaries.position.y;
-        const float maxX = mapBoundaries.position.x + mapBoundaries.size.x;
-        const float maxY = mapBoundaries.position.y + mapBoundaries.size.y;
+        const float minX = mapBoundaries.position.x + half.x;
+        const float minY = mapBoundaries.position.y + half.y;
+        const float maxX = mapBoundaries.position.x + mapBoundaries.size.x - half.x;
+        const float maxY = mapBoundaries.position.y + mapBoundaries.size.y - half.y;
 
-        std::optional<sf::Vector2f> wallNormal;
-        if (center.x <= minX) {
-            wallNormal = {-1.0f, 0.0f};
-        } else if (center.x >= maxX) {
-            wallNormal = {1.0f, 0.0f};
-        } else if (center.y <= minY) {
-            wallNormal = {0.0f, 1.0f};
-        } else if (center.y >= maxY) {
-            wallNormal = {0.0f, -1.0f};
-        }
-        if (wallNormal.has_value()) {
-            const sf::Vector2f newVel =
-                    vel.delta -
-                    2.0f * wallNormal->dot(vel.delta) * *wallNormal;
+        bool collidedX = false;
+        bool collidedY = false;
+
+        if (center.x < minX) { center.x = minX; collidedX = true; }
+        else if (center.x > maxX) { center.x = maxX; collidedX = true; }
+
+        if (center.y < minY) { center.y = minY; collidedY = true; }
+        else if (center.y > maxY) { center.y = maxY; collidedY = true; }
+
+        if (collidedX || collidedY) {
             static constexpr float Attenuation = 0.9f;
-            vel.delta = newVel * Attenuation;
+            if (collidedX) vel.delta.x = -vel.delta.x * Attenuation;
+            if (collidedY) vel.delta.y = -vel.delta.y * Attenuation;
+            pos.position = center; // snap inside after resolving velocity
         }
-
-        const float x = std::min(maxX, std::max(minX, center.x));
-        const float y = std::min(maxY, std::max(minY, center.y));
-        pos.position = sf::Vector2f{x, y};
     };
     auto MoveControlSystem = [&inputEvents](MoveControlComponent &move) {
         for (auto &&[_, input]: inputEvents) {
