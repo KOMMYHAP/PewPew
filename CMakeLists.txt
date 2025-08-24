@@ -53,12 +53,23 @@ FetchContent_Declare(GSL
 FetchContent_MakeAvailable(GSL)
 
 
+# Fetch Box2d
+FetchContent_Declare(box2d
+        GIT_REPOSITORY https://github.com/erincatto/box2d.git
+        GIT_TAG v3.1.1
+        GIT_SHALLOW ON
+        EXCLUDE_FROM_ALL
+        SYSTEM)
+FetchContent_MakeAvailable(box2d)
+
+
 # Setup project's target
 set(PROJECT_TARGET main)
-add_executable(${PROJECT_TARGET})
+add_executable(${PROJECT_TARGET}
+        sources/components/physics_components.h)
 add_subdirectory(sources)
 target_compile_features(${PROJECT_TARGET} PRIVATE cxx_std_23)
-target_link_libraries(${PROJECT_TARGET} PRIVATE SFML::Graphics EnTT::EnTT GSL)
+target_link_libraries(${PROJECT_TARGET} PRIVATE SFML::Graphics EnTT::EnTT GSL box2d)
 set_target_properties(${PROJECT_TARGET} PROPERTIES UNITY_BUILD OFF)
 target_precompile_headers(${PROJECT_TARGET} PRIVATE sources/pch.h)
 

@@ -5,6 +5,7 @@
 #include <SFML/Graphics.hpp>
 #include <entt/entt.hpp>
 #include <gsl/pointers>
+#include "box2d/box2d.h"
 
 template<class T>
 requires !std::is_const_v<T>
