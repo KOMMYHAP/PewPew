@@ -3,29 +3,31 @@
 #include "components/core_components.h"
 #include "components/physics_components.h"
 #include "components/sfml_components.h"
+#include "debug_ui/menu/summary_widget.h"
 
-GameServices::GameServices(sf::Vector2f windowSize)
-    : _physicsWorld(_ecsWorld)
-    , _renderer{_ecsWorld, _physicsWorld}
+GameServices::GameServices(sf::RenderWindow &renderWindow)
+    : _renderTarget{&renderWindow}
+    , _physicsWorld{_ecsWorld, _statistics}
+    , _renderer{_ecsWorld, _physicsWorld, *_renderTarget}
     , _camera{_ecsWorld, sf::Vector2f{0.0f, 0.0f}, sf::Vector2f{25.0f, 25.0f}}
+    , _debugUiSystem{renderWindow}
 {
+    _debugUiSystem.ModifyMenu().AddWidget<GameStatisticsWidget>("Statistics", _statistics);
 }
 
 void GameServices::Update(sf::Time elapsedTime)
 {
-    _totalTime += elapsedTime;
-    std::println("FPS = {:.2f}", 1.0f / elapsedTime.asSeconds());
-
+    _statistics.Update(elapsedTime);
+    _debugUiSystem.Update(elapsedTime);
     _physicsWorld.Update(elapsedTime);
     UpdateGameLogic(elapsedTime);
     UpdateSfmlTransforms();
-
-    std::fflush(stdout);
 }
 
-void GameServices::Render(sf::RenderTarget &target)
+void GameServices::Draw()
 {
-    _renderer.Draw(_camera, target);
+    _renderer.Draw(_camera);
+    _debugUiSystem.Draw();
 }
 
 void GameServices::UpdateGameLogic(sf::Time /*elapsedTime*/)

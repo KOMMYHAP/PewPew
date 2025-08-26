@@ -4,13 +4,14 @@
 #include "components/physics_components.h"
 #include "components/sfml_components.h"
 
-GameRenderer::GameRenderer(EntityWorld &ecsWorld, PhysicsWorld & physicsWorld)
+GameRenderer::GameRenderer(EntityWorld &ecsWorld, PhysicsWorld & physicsWorld, sf::RenderTarget& renderTarget)
     : _ecsWorld(&ecsWorld)
     , _physicsWorld(&physicsWorld)
+    , _renderTarget(&renderTarget)
 {
 }
 
-void GameRenderer::Draw(const GameCamera &camera, sf::RenderTarget &renderTarget)
+void GameRenderer::Draw(const GameCamera &camera)
 {
     const sf::FloatRect viewSpace = camera.GetViewSpace();
     auto CameraCullingSystem = [viewSpace, this](Entity entity, const PhysicsBody body, const SfmlDrawableComponent) {
@@ -20,8 +21,8 @@ void GameRenderer::Draw(const GameCamera &camera, sf::RenderTarget &renderTarget
         }
         _ecsWorld->emplace<IsVisibleInCamera>(entity);
     };
-    auto DrawVisibleSystem = [&renderTarget](const SfmlDrawableComponent drawable) {
-        renderTarget.draw(*drawable.drawable);
+    auto DrawVisibleSystem = [this](const SfmlDrawableComponent drawable) {
+        _renderTarget->draw(*drawable.drawable);
     };
 
     // cleanup culling result from previous frame
