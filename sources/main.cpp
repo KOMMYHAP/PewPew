@@ -14,12 +14,13 @@ int main()
     GameServices gameServices{window};
     EntityWorld &world = gameServices.ModifyWorld();
 
+    SfmlTransformableComponent *playerTransform = nullptr;
     WatchTargetComponent *mouse = nullptr;
     {
         const auto player = world.create();
         RectangleShapeComponent &sprite = world.emplace<RectangleShapeComponent>(player);
         world.emplace<SfmlDrawableComponent>(player, static_cast<sf::Drawable *>(&sprite.shape));
-        world.emplace<SfmlTransformableComponent>(player, static_cast<sf::Transformable *>(&sprite.shape));
+        playerTransform = &world.emplace<SfmlTransformableComponent>(player, static_cast<sf::Transformable *>(&sprite.shape));
         world.emplace<FillColorComponent>(player, sf::Color::White);
         world.emplace<InvalidatedBoundingBoxTag>(player);
         world.emplace<MoveControlComponent>(player, MoveControlComponent{});
@@ -68,7 +69,7 @@ int main()
             if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left))
             {
                 const auto bullet = world.create();
-                sf::Vector2f playerPos = spritePlayer->shape.getPosition();
+                sf::Vector2f playerPos = playerTransform->transform->getPosition();
                 sf::Vector2f direvtionShot = (mousePosWorldSpace - playerPos).normalized();
               
                 RectangleShapeComponent &sprite = world.emplace<RectangleShapeComponent>(bullet);
