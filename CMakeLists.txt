@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.30)
 project(PewPew LANGUAGES CXX)
 
+include(FetchContent)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 
@@ -23,7 +24,6 @@ endif ()
 
 
 # Fetch SFML
-include(FetchContent)
 FetchContent_Declare(SFML
         GIT_REPOSITORY https://github.com/SFML/SFML.git
         GIT_TAG 3.0.x
@@ -63,15 +63,39 @@ FetchContent_Declare(box2d
 FetchContent_MakeAvailable(box2d)
 
 
+# Fetch ImGui
+FetchContent_Declare(imgui
+        GIT_REPOSITORY https://github.com/ocornut/imgui
+        GIT_TAG v1.91.1
+        GIT_SHALLOW ON
+)
+FetchContent_MakeAvailable(imgui)
+
+set(IMGUI_DIR ${imgui_SOURCE_DIR})
+set(IMGUI_SFML_USE_DEFAULT_CONFIG OFF)
+set(IMGUI_SFML_CONFIG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sources/debug_ui/core)
+set(IMGUI_SFML_CONFIG_NAME imconfig_pewpew.h)
+option(IMGUI_SFML_FIND_SFML "Use find_package to find SFML" OFF)
+
+# Fetch ImGui-SFML
+FetchContent_Declare(imgui_sfml
+        GIT_REPOSITORY https://github.com/SFML/imgui-sfml.git
+        GIT_TAG v3.0
+        GIT_SHALLOW ON
+        EXCLUDE_FROM_ALL
+        SYSTEM)
+FetchContent_MakeAvailable(imgui_sfml)
+
+
 # Setup project's target
 set(PROJECT_TARGET main)
-add_executable(${PROJECT_TARGET}
-        sources/components/physics_components.h)
+add_executable(${PROJECT_TARGET})
 add_subdirectory(sources)
 target_compile_features(${PROJECT_TARGET} PRIVATE cxx_std_23)
-target_link_libraries(${PROJECT_TARGET} PRIVATE SFML::Graphics EnTT::EnTT GSL box2d)
+target_link_libraries(${PROJECT_TARGET} PRIVATE EnTT::EnTT GSL box2d ImGui-SFML::ImGui-SFML)
 set_target_properties(${PROJECT_TARGET} PROPERTIES UNITY_BUILD OFF)
 target_precompile_headers(${PROJECT_TARGET} PRIVATE sources/pch.h)
+target_include_directories(${PROJECT_TARGET} PRIVATE sources)
 
 
 # Copy dll to project's binary

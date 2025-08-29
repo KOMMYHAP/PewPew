@@ -2,8 +2,9 @@
 
 #include "components/physics_components.h"
 
-PhysicsWorld::PhysicsWorld(EntityWorld &ecsWorld)
+PhysicsWorld::PhysicsWorld(EntityWorld &ecsWorld, GameStatistics& statistics)
     : _ecsWorld(&ecsWorld)
+    , _statistics(&statistics)
 {
     b2WorldDef worldDef = b2DefaultWorldDef();
     worldDef.gravity = b2Vec2(0.0f, 0.0f);
@@ -39,7 +40,7 @@ void PhysicsWorld::UpdatePhysics(sf::Time elapsedTime)
     static constexpr sf::Time PhysicsStepTime = sf::milliseconds(10);
     static constexpr int PhysicsSubStepsCount = 4;
     sf::Time physicsElapsedTime = elapsedTime - PhysicsStepTime + _physicAccumulatedErrorTime;
-    int physicsStepsCount = 0;
+    int64_t physicsStepsCount = 0;
     while (physicsElapsedTime > PhysicsStepTime)
     {
         b2World_Step(_physicsWorldId, PhysicsStepTime.asSeconds(), PhysicsSubStepsCount);
@@ -47,7 +48,8 @@ void PhysicsWorld::UpdatePhysics(sf::Time elapsedTime)
         physicsStepsCount += 1;
     }
     _physicAccumulatedErrorTime = physicsElapsedTime;
-    std::println("Physics steps = {}", physicsStepsCount);
+    _statistics->LogPhysics(PhysicsStepTime * physicsStepsCount, physicsStepsCount);
+
 }
 
 void PhysicsWorld::UpdateEcsPhysics()

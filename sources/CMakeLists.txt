@@ -8,6 +8,10 @@ target_sources(${PROJECT_TARGET} PRIVATE
         game_services.cpp
         physics_world.h
         physics_world.cpp
+        game_statistics.cpp
+        game_statistics.h
 )
 
 add_subdirectory(components)
+add_subdirectory(debug_ui)
+add_subdirectory(utils)

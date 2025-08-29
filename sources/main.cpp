@@ -5,19 +5,19 @@
 
 int main()
 {
-    static constexpr sf::Vector2f MapSize{10000.0f, 10000.0f};
     static constexpr sf::Vector2f WindowSize{800.0f, 600.0f};
 
-    GameServices gameServices{WindowSize};
+    sf::RenderWindow window{sf::VideoMode(static_cast<sf::Vector2u>(WindowSize)), "PewPew"};
+    window.setFramerateLimit(60);
+    window.setKeyRepeatEnabled(false);
+
+    GameServices gameServices{window};
     EntityWorld &world = gameServices.ModifyWorld();
 
-    RectangleShapeComponent *spritePlayer = nullptr;
     WatchTargetComponent *mouse = nullptr;
     {
         const auto player = world.create();
         RectangleShapeComponent &sprite = world.emplace<RectangleShapeComponent>(player);
-        spritePlayer = &sprite;
-
         world.emplace<SfmlDrawableComponent>(player, static_cast<sf::Drawable *>(&sprite.shape));
         world.emplace<SfmlTransformableComponent>(player, static_cast<sf::Transformable *>(&sprite.shape));
         world.emplace<FillColorComponent>(player, sf::Color::White);
@@ -42,10 +42,6 @@ int main()
         world.emplace<KinematicPhysicsObjectPrototype>(checkObject, sf::Vector2f{15.0f, 20.0f}, sf::Vector2f{1.0f, 5.0f});
     }
 
-    sf::RenderWindow window{sf::VideoMode(static_cast<sf::Vector2u>(WindowSize)), "PewPew"};
-    window.setFramerateLimit(60);
-    window.setKeyRepeatEnabled(false);
-
     sf::Clock frameClock;
     while (window.isOpen())
     {
@@ -57,6 +53,8 @@ int main()
             {
                 window.close();
             }
+            gameServices.ModifyDebugUi().ProcessInput(*event);
+
             const auto entity = world.create();
             world.emplace<InputEventComponent>(entity, *std::move(event));
         }
@@ -86,8 +84,10 @@ int main()
 
         window.clear();
         window.setView(gameServices.GetCamera().GetView());
-        gameServices.Render(window);
+        gameServices.Draw();
         window.display();
+
+        std::fflush(stdout);
     }
     return 0;
 }

@@ -1,9 +1,10 @@
 #pragma once
+#include "game_statistics.h"
 
 class PhysicsWorld
 {
 public:
-    PhysicsWorld(EntityWorld &ecsWorld);
+    PhysicsWorld(EntityWorld &ecsWorld, GameStatistics& statistics);
 
     void Update(sf::Time elapsedTime);
 
@@ -11,11 +12,11 @@ public:
     sf::Vector2f GetPosition(b2BodyId id) const;
 
 private:
-
     void UpdatePhysics(sf::Time elapsedTime);
     void UpdateEcsPhysics();
 
     sf::Time _physicAccumulatedErrorTime;
     b2WorldId _physicsWorldId{b2_nullWorldId};
     Ref<EntityWorld> _ecsWorld;
+    Ref<GameStatistics> _statistics;
 };
