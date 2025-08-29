@@ -77,7 +77,7 @@ int main()
                 world.emplace<SfmlDrawableComponent>(bullet, static_cast<sf::Drawable *>(&sprite.shape));
                 world.emplace<SfmlTransformableComponent>(bullet, static_cast<sf::Transformable *>(&sprite.shape));
                 world.emplace<FillColorComponent>(bullet, sf::Color::Red);
-                world.emplace<MoveSpeedComponent>(bullet, 300.0f);
+                world.emplace<MoveSpeedComponent>(bullet, 50.0f);
                 world.emplace<MoveDirectionComponent>(bullet, direvtionShot);
                 world.emplace<KinematicPhysicsObjectPrototype>(bullet, playerPos, sf::Vector2f{0.05f, 0.05f});
                 
