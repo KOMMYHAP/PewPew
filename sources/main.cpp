@@ -24,12 +24,13 @@ int main()
         world.emplace<InvalidatedBoundingBoxTag>(player);
         world.emplace<MoveControlComponent>(player, MoveControlComponent{});
         world.emplace<MoveSpeedComponent>(player, 5.0f);
-        world.emplace<VelocityComponent>(player, sf::Vector2f{0.0f, 0.0f});
+        world.emplace<MoveDirectionComponent>(player, sf::Vector2f{0.0f, 0.0f});
         WatchTargetComponent &watchTargetComponent = world.emplace<WatchTargetComponent>(player, sf::Vector2f{0.0f, 0.0f});
         mouse = &watchTargetComponent;
         world.emplace<RotationComponent>(player, sf::degrees(0));
         world.emplace<KinematicPhysicsObjectPrototype>(player, sf::Vector2f{0.0f, 0.0f}, sf::Vector2f{1.0f, 1.0f});
     }
+    
     {
         const auto checkObject = world.create();
         RectangleShapeComponent &sprite = world.emplace<RectangleShapeComponent>(checkObject);
@@ -66,6 +67,21 @@ int main()
             sf::Vector2f mousePosWorldSpace = window.mapPixelToCoords(mousePosScreenSpace, gameServices.GetCamera().GetView());
             mouse->position = mousePosWorldSpace;
             std::println("({},{})", mousePosWorldSpace.x, mousePosWorldSpace.y);
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left))
+            {
+                const auto bullet = world.create();
+                sf::Vector2f playerPos = spritePlayer->shape.getPosition();
+                sf::Vector2f direvtionShot = (mousePosWorldSpace - playerPos).normalized();
+              
+                RectangleShapeComponent &sprite = world.emplace<RectangleShapeComponent>(bullet);
+                world.emplace<SfmlDrawableComponent>(bullet, static_cast<sf::Drawable *>(&sprite.shape));
+                world.emplace<SfmlTransformableComponent>(bullet, static_cast<sf::Transformable *>(&sprite.shape));
+                world.emplace<FillColorComponent>(bullet, sf::Color::Red);
+                world.emplace<MoveSpeedComponent>(bullet, 300.0f);
+                world.emplace<MoveDirectionComponent>(bullet, direvtionShot);
+                world.emplace<KinematicPhysicsObjectPrototype>(bullet, playerPos, sf::Vector2f{0.05f, 0.05f});
+                
+            }
         }
 
         window.clear();
