@@ -54,8 +54,9 @@ void GameServices::UpdateGameLogic(sf::Time /*elapsedTime*/)
         rotation.angle = rotationAngle;
     };
 
-    auto MoveSystem = [](const PhysicsBody &body, const MoveDirectionComponent vel) {
-        b2Body_SetLinearVelocity(body.id, b2Vec2{vel.delta.x, vel.delta.y});
+    auto MoveSystem = [](const PhysicsBody &body, const MoveDirectionComponent direction, const MoveSpeedComponent speed) {
+        const sf::Vector2f velocity = direction.delta * speed.value;
+        b2Body_SetLinearVelocity(body.id, b2Vec2{velocity.x, velocity.y});
     };
 
     auto MoveControlSystem = [&inputEvents](MoveControlComponent &move) {
@@ -80,7 +81,7 @@ void GameServices::UpdateGameLogic(sf::Time /*elapsedTime*/)
             }
         }
     };
-    auto ApplyMoveControlSystem = [](const MoveControlComponent control, const MoveSpeedComponent speed, MoveDirectionComponent &vel) {
+    auto ApplyMoveControlSystem = [](const MoveControlComponent control, MoveDirectionComponent &vel) {
         sf::Vector2f direction{};
         if (control.activeDirections[MoveControlComponent::Left])
         {
@@ -98,13 +99,13 @@ void GameServices::UpdateGameLogic(sf::Time /*elapsedTime*/)
         {
             direction.y = 1.0f;
         }
-        vel.delta = direction * speed.value;
+        vel.delta = direction;
     };
 
     _ecsWorld.view<MoveControlComponent>().each(MoveControlSystem);
     _ecsWorld.clear<InputEventComponent>();
-    _ecsWorld.view<const MoveControlComponent, const MoveSpeedComponent, MoveDirectionComponent>().each(ApplyMoveControlSystem);
-    _ecsWorld.view<const PhysicsBody, const MoveDirectionComponent>().each(MoveSystem);
+    _ecsWorld.view<const MoveControlComponent, MoveDirectionComponent>().each(ApplyMoveControlSystem);
+    _ecsWorld.view<const PhysicsBody, const MoveDirectionComponent, const MoveSpeedComponent>().each(MoveSystem);
     _ecsWorld.view<const PhysicsBody, const WatchTargetComponent, RotationComponent>().each(WatchTargetRotationSystem);
 }
 
