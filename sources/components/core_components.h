@@ -13,7 +13,7 @@ struct ScaleComponent
     sf::Vector2f factor;
 };
 
-struct VelocityComponent
+struct MoveDirectionComponent
 {
     sf::Vector2f delta;
 };
