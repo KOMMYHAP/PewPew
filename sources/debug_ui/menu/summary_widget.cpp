@@ -13,5 +13,6 @@ BaseMenuWidget::MenuWidgetAction GameStatisticsWidget::ProcessMenuItem(sf::Time 
     ImGui::Text("Frame: %d", _statistics->GetElapsedFramesCount());
     ImGui::Text("Game Time: %.2f seconds", _statistics->GetElapsedGameTime().asSeconds());
     ImGui::Text("Physics Time: %d ms (%d steps)", _statistics->GetPhysicsTime().asMilliseconds(), _statistics->GetPhysicsSteps());
+    ImGui::Text("Physics Bodies: %d", _statistics->GetPhysicsBodies());
     return MenuWidgetAction::KeepOpen;
 }

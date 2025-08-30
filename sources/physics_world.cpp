@@ -35,6 +35,11 @@ sf::Vector2f PhysicsWorld::GetPosition(b2BodyId id) const
     return {position.x, position.y};
 }
 
+int32_t PhysicsWorld::GetBodysCount() const
+{
+    return b2World_GetCounters(_physicsWorldId).bodyCount;
+}
+
 void PhysicsWorld::UpdatePhysics(sf::Time elapsedTime)
 {
     static constexpr sf::Time PhysicsStepTime = sf::milliseconds(10);
@@ -48,7 +53,7 @@ void PhysicsWorld::UpdatePhysics(sf::Time elapsedTime)
         physicsStepsCount += 1;
     }
     _physicAccumulatedErrorTime = physicsElapsedTime;
-    _statistics->LogPhysics(PhysicsStepTime * physicsStepsCount, physicsStepsCount);
+    _statistics->LogPhysics(PhysicsStepTime * physicsStepsCount, physicsStepsCount, GetBodysCount());
 
 }
 

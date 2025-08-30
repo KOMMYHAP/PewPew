@@ -16,10 +16,11 @@ void GameStatistics::Update(sf::Time elapsedTime)
     _elapsedFramesCount++;
 }
 
-void GameStatistics::LogPhysics(sf::Time elapsedTime, int32_t steps)
+void GameStatistics::LogPhysics(sf::Time elapsedTime, int32_t steps, int32_t bodies)
 {
     _physicsTimeCounter.AddSample(elapsedTime.asSeconds());
     _physicsStepsCounter.AddSample(steps);
+    _bodiesCounter = bodies;
 }
 
 sf::Time GameStatistics::GetFrameTime() const
@@ -37,4 +38,9 @@ sf::Time GameStatistics::GetPhysicsTime() const
 int32_t GameStatistics::GetPhysicsSteps() const
 {
     return _physicsStepsCounter.CalcAverage();
+}
+
+int32_t GameStatistics::GetPhysicsBodies() const
+{
+    return _bodiesCounter;
 }
