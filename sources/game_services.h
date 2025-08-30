@@ -17,6 +17,7 @@ class GameServices
     const GameCamera &GetCamera() const { return _camera; }
     DebugUiSystem &ModifyDebugUi() { return _debugUiSystem; }
     GameStatistics &ModifyStatistics() { return _statistics; }
+    PhysicsWorld &ModifyPhysics() { return _physicsWorld; }
 
   private:
     void UpdateGameLogic(sf::Time elapsedTime);

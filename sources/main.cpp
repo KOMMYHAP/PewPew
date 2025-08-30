@@ -16,8 +16,9 @@ int main()
 
     SfmlTransformableComponent *playerTransform = nullptr;
     WatchTargetComponent *mouse = nullptr;
+    Entity player{};
     {
-        const auto player = world.create();
+        player = world.create();
         RectangleShapeComponent &sprite = world.emplace<RectangleShapeComponent>(player);
         world.emplace<SfmlDrawableComponent>(player, static_cast<sf::Drawable *>(&sprite.shape));
         playerTransform = &world.emplace<SfmlTransformableComponent>(player, static_cast<sf::Transformable *>(&sprite.shape));
@@ -31,7 +32,7 @@ int main()
         world.emplace<RotationComponent>(player, sf::degrees(0));
         world.emplace<KinematicPhysicsObjectPrototype>(player, sf::Vector2f{0.0f, 0.0f}, sf::Vector2f{1.0f, 1.0f});
     }
-    
+
     {
         const auto checkObject = world.create();
         RectangleShapeComponent &sprite = world.emplace<RectangleShapeComponent>(checkObject);
@@ -68,18 +69,20 @@ int main()
             std::println("({},{})", mousePosWorldSpace.x, mousePosWorldSpace.y);
             if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left))
             {
-                const auto bullet = world.create();
-                sf::Vector2f playerPos = playerTransform->transform->getPosition();
-                sf::Vector2f direvtionShot = (mousePosWorldSpace - playerPos).normalized();
-              
-                RectangleShapeComponent &sprite = world.emplace<RectangleShapeComponent>(bullet);
-                world.emplace<SfmlDrawableComponent>(bullet, static_cast<sf::Drawable *>(&sprite.shape));
-                world.emplace<SfmlTransformableComponent>(bullet, static_cast<sf::Transformable *>(&sprite.shape));
-                world.emplace<FillColorComponent>(bullet, sf::Color::Red);
-                world.emplace<MoveSpeedComponent>(bullet, 50.0f);
-                world.emplace<MoveDirectionComponent>(bullet, direvtionShot);
-                world.emplace<KinematicPhysicsObjectPrototype>(bullet, playerPos, sf::Vector2f{0.05f, 0.05f});
-                
+                const PhysicsBody *playerBody = world.try_get<PhysicsBody>(player);
+                if (playerBody)
+                {
+                    const auto bullet = world.create();
+                    const sf::Vector2f playerPos = gameServices.ModifyPhysics().GetPosition(playerBody->id);
+                    const sf::Vector2f directionShot = (mousePosWorldSpace - playerPos).normalized();
+                    RectangleShapeComponent &sprite = world.emplace<RectangleShapeComponent>(bullet);
+                    world.emplace<SfmlDrawableComponent>(bullet, static_cast<sf::Drawable *>(&sprite.shape));
+                    world.emplace<SfmlTransformableComponent>(bullet, static_cast<sf::Transformable *>(&sprite.shape));
+                    world.emplace<FillColorComponent>(bullet, sf::Color::Red);
+                    world.emplace<MoveSpeedComponent>(bullet, 50.0f);
+                    world.emplace<MoveDirectionComponent>(bullet, directionShot);
+                    world.emplace<KinematicPhysicsObjectPrototype>(bullet, playerPos, sf::Vector2f{0.05f, 0.05f});
+                }
             }
         }
 
