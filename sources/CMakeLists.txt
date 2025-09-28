@@ -11,3 +11,4 @@ target_sources(${PROJECT_TARGET} PRIVATE
 )
 
 add_subdirectory(components)
+add_subdirectory(tests)
