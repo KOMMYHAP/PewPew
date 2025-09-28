@@ -1,0 +1,10 @@
+{
+  "window_size_x": 800,
+  "window_size_y": 600,
+  "player_position_x": 0,
+  "player_position_y": 0,
+  "player_speed": 5,
+  "player_color": 0,
+  "bullet_speed": 35,
+  "bullet_color": 0
+}

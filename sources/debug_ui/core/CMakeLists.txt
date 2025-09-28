@@ -1,4 +1,4 @@
-target_sources(${PROJECT_TARGET} PRIVATE
+target_sources(PewPew PRIVATE
     menu_root_widget.h
     menu_root_widget.cpp
     menu_root_widget.hpp

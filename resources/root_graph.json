@@ -1,0 +1,8 @@
+{
+  "resources": [
+    {
+      "path": "game_settings.json",
+      "type": "game_settings"
+    }
+  ]
+}

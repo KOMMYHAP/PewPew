@@ -15,4 +15,5 @@ target_sources(${PROJECT_TARGET} PRIVATE
 add_subdirectory(components)
 add_subdirectory(debug_ui)
 add_subdirectory(utils)
+add_subdirectory(resources)
 add_subdirectory(tests)

@@ -1,4 +1,4 @@
-target_sources(${PROJECT_TARGET} PRIVATE
+target_sources(PewPew PRIVATE
     summary_widget.cpp
     summary_widget.h
 )
