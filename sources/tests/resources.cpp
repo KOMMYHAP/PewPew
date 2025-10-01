@@ -600,3 +600,58 @@ TEST(DescRegistryTest, ParseSimpleItem)
   ASSERT_EQ(parsedItem->x, 10);
   ASSERT_EQ(parsedItem->y, 20);
 }
+
+TEST(DescRegistryTest, ParseComplexItem)
+{
+  DescRegistry descRegistry;
+  descRegistry
+    .Register<SimpleItem>("simple_item")
+    .AddField("x", &SimpleItem::x)
+    .AddField("y", &SimpleItem::y)
+    .Build();
+
+  descRegistry
+    .Register<ComplexItem>("complex_item")
+    .AddField("a", &ComplexItem::a)
+    .AddField("b", &ComplexItem::b)
+    .Build();
+
+  constexpr std::string_view SerializedData = R"(
+{
+  "__type": "complex_item",
+  "__fields": {
+    "a": {
+      "__type": "simple_item",
+      "__fields": {
+        "x": {
+          "__type": "int32",
+          "__data": 1
+        },
+        "y": {
+          "__type": "int32",
+          "__data": 2
+        }
+      }
+    },
+    "b": {
+      "__type": "simple_item",
+      "__fields": {
+        "x": {
+          "__type": "int32",
+          "__data": 3
+        },
+        "y": {
+          "__type": "int32",
+          "__data": 4
+        }
+      }
+    }
+  }
+})";
+
+  const std::optional<ComplexItem> parsedItem = DescParser::Parse<ComplexItem>(descRegistry, SerializedData);
+  ASSERT_EQ(parsedItem->a.x, 1);
+  ASSERT_EQ(parsedItem->a.y, 2);
+  ASSERT_EQ(parsedItem->b.x, 3);
+  ASSERT_EQ(parsedItem->b.y, 4);
+}
