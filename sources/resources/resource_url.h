@@ -6,7 +6,7 @@ class ResourceURL
 public:
   ResourceURL() = default;
 
-  ResourceTypeId GetType() const { return _type; }
+  DescTypeId GetType() const { return _type; }
 
   ResourcePathId GetPath() const { return _path; }
 
@@ -15,6 +15,6 @@ public:
 private:
   ResourceURL(std::string_view type, std::string_view path);
 
-  ResourceTypeId _type{ ResourceTypeId::Invalid };
+  DescTypeId _type{ DescTypeId::Invalid };
   ResourcePathId _path{ ResourcePathId::Invalid };
 };

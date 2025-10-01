@@ -1,4 +1,4 @@
-target_sources(${PROJECT_TARGET} PRIVATE
+target_sources(PewPew PRIVATE
         main.cpp
         game_renderer.cpp
         game_renderer.h

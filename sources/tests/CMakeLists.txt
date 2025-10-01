@@ -8,9 +8,12 @@ FetchContent_Declare(googletest
         SYSTEM)
 FetchContent_MakeAvailable(googletest)
 
-add_executable(pew_auto_tests main.cpp)
+add_executable(pew_auto_tests
+        main.cpp
+        resources.cpp
+)
 target_compile_features(pew_auto_tests PRIVATE cxx_std_23)
-target_link_libraries(pew_auto_tests PRIVATE gtest_main)
+target_link_libraries(pew_auto_tests PRIVATE gtest_main pew_utils nlohmann_json::nlohmann_json)
 
 enable_testing()
 include(GoogleTest)

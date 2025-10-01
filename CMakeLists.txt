@@ -105,7 +105,7 @@ FetchContent_MakeAvailable(json)
 # Setup project's target
 add_executable(PewPew)
 add_subdirectory(sources)
-target_link_libraries(PewPew PRIVATE EnTT::EnTT GSL box2d ImGui-SFML::ImGui-SFML pew_resources pew_utils nlohmann_json::nlohmann_json)
+target_link_libraries(PewPew PRIVATE EnTT::EnTT box2d ImGui-SFML::ImGui-SFML pew_resources pew_utils nlohmann_json::nlohmann_json)
 set_target_properties(PewPew PROPERTIES UNITY_BUILD OFF)
 target_precompile_headers(PewPew PRIVATE sources/pch.h)
 target_compile_features(PewPew PRIVATE cxx_std_23)
