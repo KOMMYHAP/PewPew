@@ -6,6 +6,7 @@ target_sources(pew_utils
         PUBLIC
         sample_counter.h
         std_headers.h
+        string_hash.h
 )
 target_include_directories(pew_utils PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_precompile_headers(pew_utils PRIVATE std_headers.h)

@@ -15,5 +15,6 @@ target_sources(PewPew PRIVATE
 add_subdirectory(components)
 add_subdirectory(debug_ui)
 add_subdirectory(utils)
+add_subdirectory(desc)
 add_subdirectory(resources)
 add_subdirectory(tests)
