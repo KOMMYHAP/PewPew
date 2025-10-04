@@ -12,21 +12,32 @@ struct DescField
   DescTypeId type;
 };
 
-struct ParsedDescField
+struct DescParsedField
 {
   DescField field;
   std::any value;
 };
 
-struct Desc
+class Desc
 {
-  using Constructor = std::move_only_function<std::optional<std::any>(std::string&, std::vector<ParsedDescField>)>;
-  using Unpack = std::move_only_function<std::optional<std::any>(std::string&, std::vector<std::any>)>;
+public:
+  using Constructor = std::move_only_function<std::optional<std::any>(std::string&, std::vector<DescParsedField>)>;
+  using Unpacker = std::move_only_function<std::optional<std::any>(std::string&, std::vector<std::any>)>;
 
-  std::string name;
-  std::vector<DescField> fields;
-  mutable Constructor constructor;
-  mutable Unpack unpack;
+  Desc(std::string name, std::vector<DescField> fields, Constructor constructor, Unpacker unpack);
+
+  std::optional<std::any> Construct(std::string& errors, std::vector<DescParsedField> parsedFields) const;
+  std::optional<std::any> UnpackValuesArray(std::string& errors, std::vector<std::any> packedValues) const;
+
+  std::string_view GetName() const { return _name; }
+
+  std::span<const DescField> GetFields() const { return _fields; }
+
+private:
+  std::string _name;
+  std::vector<DescField> _fields;
+  mutable Constructor _constructor;
+  mutable Unpacker _unpack;
 };
 
 class DescRegistry

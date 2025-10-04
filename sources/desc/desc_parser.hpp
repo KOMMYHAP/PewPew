@@ -1,20 +1,11 @@
 #pragma once
 #include "desc_parser.h"
 
-
 template<class DescType>
 std::optional<DescType> DescParser::Parse(const DescRegistry& registry, std::string_view data)
 {
-  nlohmann::json rootJson;
-  try {
-    rootJson = nlohmann::json::parse(data, nullptr, true, true);
-  } catch (const nlohmann::json::parse_error& e) {
-    registry._LogError(std::format("Failed to parse data: {}", e.what()));
-    return std::nullopt;
-  }
-
   std::string errorBuffer;
-  std::optional<std::any> parsedDesc = RecursiveParse(registry, errorBuffer, std::move(rootJson));
+  std::optional<std::any> parsedDesc = AbstractParse(registry, errorBuffer, data);
   if (!parsedDesc) {
     registry._LogError(std::move(errorBuffer));
     return std::nullopt;

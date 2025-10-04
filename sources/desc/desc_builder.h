@@ -14,7 +14,7 @@ public:
   DescTypeId Build();
 
 private:
-  using DescConstructor = std::move_only_function<std::optional<std::any>(std::string& errors, std::vector<ParsedDescField> parsedFields)>;
+  using DescConstructor = std::move_only_function<std::optional<std::any>(std::string& errors, std::vector<DescParsedField> parsedFields)>;
 
   struct FieldConstructor
   {

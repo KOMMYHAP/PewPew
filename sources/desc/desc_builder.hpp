@@ -43,7 +43,7 @@ DescTypeId DescBuilder<DescType>::Build()
 {
   Desc::Constructor descInstanceConstructor;
   if (!_fieldConstructors.empty()) {
-    descInstanceConstructor = [fieldConstructors = std::move(_fieldConstructors), registry = _registry.get()](std::string& errors, std::vector<ParsedDescField> parsedFields) mutable -> std::optional<std::any> {
+    descInstanceConstructor = [fieldConstructors = std::move(_fieldConstructors), registry = _registry.get()](std::string& errors, std::vector<DescParsedField> parsedFields) mutable -> std::optional<std::any> {
       const DescTypeId descTypeId = registry->FindDescTypeId<DescType>();
       std::any descStorage = std::make_any<DescType>();
 
@@ -77,7 +77,7 @@ DescTypeId DescBuilder<DescType>::Build()
     };
   }
 
-  Desc::Unpack unpack = [](std::string& errors, std::vector<std::any> values) {
+  Desc::Unpacker unpack = [](std::string& errors, std::vector<std::any> values) {
     std::vector<DescType> unpackedValues;
     unpackedValues.reserve(values.size());
     for (std::any& value : values) {

@@ -2,6 +2,18 @@
 
 #include <nlohmann/json.hpp>
 
+std::optional<std::any> DescParser::AbstractParse(const DescRegistry& registry, std::string& errorBuffer, std::string_view data)
+{
+  nlohmann::json rootJson;
+  try {
+    rootJson = nlohmann::json::parse(data, nullptr, true, true);
+  } catch (const nlohmann::json::parse_error& e) {
+    registry._LogError(std::format("Failed to parse data: {}", e.what()));
+    return std::nullopt;
+  }
+
+  return RecursiveParse(registry, errorBuffer, std::move(rootJson));
+}
 
 std::optional<std::any> DescParser::RecursiveParse(const DescRegistry& registry, std::string& errorBuffer, nlohmann::json rootJson)
 {
@@ -47,9 +59,9 @@ std::optional<std::any> DescParser::RecursiveObjectParse(const DescRegistry& reg
   nlohmann::json fieldsJson = std::move(rootJson.at("__fields"));
   const std::string_view descName = registry.GetDescTypeName(descTypeId);
 
-  std::vector<ParsedDescField> parsedFields;
+  std::vector<DescParsedField> parsedFields;
   parsedFields.reserve(fieldsJson.size());
-  for (const DescField& field : desc->fields) {
+  for (const DescField& field : desc->GetFields()) {
     const std::string_view fieldName = registry.GetDescFieldName(field.id);
     if (!fieldsJson.contains(fieldName)) {
       errorBuffer += std::format("Desc {} requires field {}!\n", descName, fieldName);
@@ -70,7 +82,7 @@ std::optional<std::any> DescParser::RecursiveObjectParse(const DescRegistry& reg
     return std::nullopt;
   }
 
-  std::optional<std::any> parsedObject = desc->constructor(errorBuffer, std::move(parsedFields));
+  std::optional<std::any> parsedObject = desc->Construct(errorBuffer, std::move(parsedFields));
   if (!parsedObject) {
     errorBuffer += std::format("Failed to construct object by its desc {}!\n", descName);
   }
@@ -119,7 +131,7 @@ std::optional<std::any> DescParser::RecursiveParseArray(const DescRegistry& regi
     values.emplace_back(std::move(parsedValue).value_or(std::any()));
   }
 
-  return desc->unpack(errorBuffer, std::move(values));
+  return desc->UnpackValuesArray(errorBuffer, std::move(values));
 }
 
 std::optional<std::any> DescParser::RecursiveParsePrimitive(const DescRegistry& registry, std::string& errorBuffer, DescTypeId descTypeId, nlohmann::json rootJson)

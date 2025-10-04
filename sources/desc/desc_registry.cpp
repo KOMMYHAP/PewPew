@@ -11,6 +11,34 @@ struct DescRegistryTagObject
 
 }
 
+Desc::Desc(std::string name, std::vector<DescField> fields, Constructor constructor, Unpacker unpack)
+  : _name(std::move(name))
+  , _fields(std::move(fields))
+  , _constructor(std::move(constructor))
+  , _unpack(std::move(unpack))
+{
+}
+
+std::optional<std::any> Desc::Construct(std::string& errors, std::vector<DescParsedField> parsedFields) const
+{
+  if (!_constructor) {
+    errors += std::format("Constructor of desc {} is undefined!", _name);
+    return std::nullopt;
+  }
+
+  return _constructor(errors, std::move(parsedFields));
+}
+
+std::optional<std::any> Desc::UnpackValuesArray(std::string& errors, std::vector<std::any> packedValues) const
+{
+  if (!_unpack) {
+    errors += std::format("Unpacker of desc {} is undefined!", _name);
+    return std::nullopt;
+  }
+
+  return _unpack(errors, std::move(packedValues));
+}
+
 DescRegistry::DescRegistry()
 {
   DescBuilder<int32_t>(*this, "int32").Build();
@@ -26,7 +54,7 @@ DescTypeId DescRegistry::RegisterDesc(std::type_index descType, Desc desc)
   }
 
   const DescTypeId id{ static_cast<std::underlying_type_t<DescTypeId>>(_descList.size()) };
-  const std::string nameView = desc.name; //< store name before desc moving
+  const std::string nameView{desc.GetName()}; //< store name before desc moving
   _descList.push_back(std::move(desc));
   _descIndexByGenericType[descType] = id;
   _descIndexByName[nameView] = id;
@@ -48,7 +76,7 @@ std::string_view DescRegistry::GetDescTypeName(DescTypeId typeId) const
   if (desc == nullptr) {
     return "Invalid";
   }
-  return desc->name;
+  return desc->GetName();
 }
 
 const Desc* DescRegistry::FindDesc(DescTypeId typeId) const
