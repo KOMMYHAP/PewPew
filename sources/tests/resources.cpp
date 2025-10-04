@@ -2,6 +2,20 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
+static_assert(__cpp_lib_generic_unordered_lookup, "Heterogeneous comparison lookup in unordered associative containers is required");
+
+struct string_hash
+{
+  using hash_type = std::hash<std::string_view>;
+  using is_transparent = void;
+
+  std::size_t operator()(const char* str) const { return hash_type{}(str); }
+
+  std::size_t operator()(std::string_view str) const { return hash_type{}(str); }
+
+  std::size_t operator()(const std::string& str) const { return hash_type{}(str); }
+};
+
 enum class DescTypeId : uint32_t
 {
   Int32,
@@ -42,10 +56,12 @@ struct ParsedDescField
 struct Desc
 {
   using Constructor = std::move_only_function<std::optional<std::any>(std::string&, std::vector<ParsedDescField>)>;
+  using Unpack = std::move_only_function<std::optional<std::any>(std::string&, std::vector<std::any>)>;
 
   std::string name;
   std::vector<DescField> fields;
   mutable Constructor constructor;
+  mutable Unpack unpack;
 };
 
 template<class DescType>
@@ -54,8 +70,8 @@ class DescBuilder
 public:
   DescBuilder(DescRegistry& registry, std::string_view name);
 
-  template<class FieldType>
-  DescBuilder& AddField(std::string_view name, FieldType DescType::* fieldPtr);
+  template<auto FieldPtr = nullptr>
+  DescBuilder& AddField(std::string_view name);
 
   DescTypeId Build();
 
@@ -111,7 +127,7 @@ private:
 
   std::vector<Desc> _descList;
   std::unordered_map<std::type_index, DescTypeId> _descIndexByGenericType;
-  std::unordered_map<std::string_view, DescTypeId> _descIndexByName;
+  std::unordered_map<std::string, DescTypeId, string_hash, std::equal_to<>> _descIndexByName;
 };
 
 class DescParser
@@ -121,20 +137,23 @@ public:
   static std::optional<DescType> Parse(const DescRegistry& registry, std::string_view data);
 
 private:
-  static std::optional<std::any> RecursiveParse(const DescRegistry& registry, std::string& errorBuffer, DescTypeId descTypeId, nlohmann::json dataJson);
+  static std::optional<std::any> RecursiveParse(const DescRegistry& registry, std::string& errorBuffer, nlohmann::json dataJson);
   static std::optional<std::any> RecursiveObjectParse(const DescRegistry& registry, std::string& errorBuffer, DescTypeId descTypeId, nlohmann::json rootJson);
   static std::optional<std::any> RecursiveParseArray(const DescRegistry& registry, std::string& errorBuffer, nlohmann::json dataJson);
   static std::optional<std::any> RecursiveParsePrimitive(const DescRegistry& registry, std::string& errorBuffer, DescTypeId descTypeId, nlohmann::json dataJson);
 };
 
 template<class DescType>
-template<class FieldType>
-DescBuilder<DescType>& DescBuilder<DescType>::AddField(std::string_view name, FieldType DescType::* fieldPtr)
+template<auto FieldPtr>
+DescBuilder<DescType>& DescBuilder<DescType>::AddField(std::string_view name)
 {
+  static_assert(!std::is_fundamental_v<DescType>);
+  using FieldType = std::decay_t<decltype(std::declval<DescType>().*FieldPtr)>;
+
   const DescFieldId fieldId = _registry->_GetOrRegisterField(name);
   const DescTypeId fieldTypeId = _registry->FindDescTypeId<FieldType>();
   _fields.emplace_back(fieldId, fieldTypeId);
-  _fieldConstructors.emplace_back(fieldId, [fieldPtr](std::string& errors, std::any fieldObject, std::any& object) {
+  _fieldConstructors.emplace_back(fieldId, [](std::string& errors, std::any fieldObject, std::any& object) {
     FieldType* field = std::any_cast<FieldType>(&fieldObject);
     if (!field) {
       errors += std::format("Internal error: mismatched type of parsed field (expected \"{}\", actual \"{}\")!\n", typeid(FieldType).name(), fieldObject.type().name());
@@ -145,7 +164,7 @@ DescBuilder<DescType>& DescBuilder<DescType>::AddField(std::string_view name, Fi
       errors += std::format("Internal error: mismatched type of target object (expected \"{}\", actual \"{}\")!\n", typeid(DescType).name(), object.type().name());
       return false;
     }
-    desc->*fieldPtr = std::move(*field);
+    desc->*FieldPtr = std::move(*field);
     return true;
   });
   return *this;
@@ -166,7 +185,7 @@ DescTypeId DescRegistry::_RegisterDesc(Desc desc)
   }
 
   const DescTypeId id{ static_cast<std::underlying_type_t<DescTypeId>>(_descList.size()) };
-  const std::string_view nameView = desc.name; //< store name before desc moving
+  const std::string nameView = desc.name; //< store name before desc moving
   _descList.push_back(std::move(desc));
   _descIndexByGenericType[genericDescTypeIndex] = id;
   _descIndexByName[nameView] = id;
@@ -176,16 +195,16 @@ DescTypeId DescRegistry::_RegisterDesc(Desc desc)
 template<class DescType>
 std::optional<DescType> DescParser::Parse(const DescRegistry& registry, std::string_view data)
 {
-  nlohmann::json rootJson = nlohmann::json::parse(data, nullptr, false, true);
-  const DescTypeId descTypeId = registry.FindDescTypeId<DescType>();
-  const Desc* desc = registry.FindDesc(descTypeId);
-  if (!desc) {
-    registry._LogError(std::format("desc \"{}\" not found", typeid(DescType).name()));
+  nlohmann::json rootJson;
+  try {
+    rootJson = nlohmann::json::parse(data, nullptr, true, true);
+  } catch (const nlohmann::json::parse_error& e) {
+    registry._LogError(std::format("Failed to parse data: {}", e.what()));
     return std::nullopt;
   }
 
   std::string errorBuffer;
-  std::optional<std::any> parsedDesc = RecursiveParse(registry, errorBuffer, descTypeId, std::move(rootJson));
+  std::optional<std::any> parsedDesc = RecursiveParse(registry, errorBuffer, std::move(rootJson));
   if (!parsedDesc) {
     registry._LogError(std::move(errorBuffer));
     return std::nullopt;
@@ -193,7 +212,10 @@ std::optional<DescType> DescParser::Parse(const DescRegistry& registry, std::str
 
   DescType* parsedTypedDesc = std::any_cast<DescType>(&parsedDesc.value());
   if (!parsedTypedDesc) {
-    errorBuffer = std::format("Internal error: mismatched type of parsed desc \"{}\"", registry.GetDescTypeName(descTypeId));
+    errorBuffer = std::format(
+      "Mismatched type of parsed desc, expected \"{}\", but actual \"{}\"!",
+      registry.GetDescTypeName(registry.FindDescTypeId<DescType>()),
+      parsedDesc->type().name());
     registry._LogError(std::move(errorBuffer));
     return std::nullopt;
   }
@@ -204,44 +226,64 @@ std::optional<DescType> DescParser::Parse(const DescRegistry& registry, std::str
 template<class DescType>
 DescTypeId DescBuilder<DescType>::Build()
 {
-  Desc::Constructor descInstanceConstructor =
-    [fieldConstructors = std::move(_fieldConstructors), registry = _registry.get()](std::string& errors, std::vector<ParsedDescField> parsedFields) mutable -> std::optional<std::any> {
-    const DescTypeId descTypeId = registry->FindDescTypeId<DescType>();
-    std::any descStorage = std::make_any<DescType>();
+  Desc::Constructor descInstanceConstructor;
+  if (!_fieldConstructors.empty()) {
+    descInstanceConstructor = [fieldConstructors = std::move(_fieldConstructors), registry = _registry.get()](std::string& errors, std::vector<ParsedDescField> parsedFields) mutable -> std::optional<std::any> {
+      const DescTypeId descTypeId = registry->FindDescTypeId<DescType>();
+      std::any descStorage = std::make_any<DescType>();
 
-    if (fieldConstructors.size() != parsedFields.size()) {
-      errors += std::format(
-        "Mismatched fields to construct desc {}: expected %d, but actual %d!",
-        registry->GetDescTypeName(descTypeId),
-        fieldConstructors.size(),
-        parsedFields.size());
-      return std::nullopt;
-    }
-
-    for (auto& [field, value] : parsedFields) {
-      auto it = std::find_if(fieldConstructors.begin(), fieldConstructors.end(), [fieldId = field.id](const FieldConstructor& constructor) {
-        return constructor.fieldId == fieldId;
-      });
-      if (it == fieldConstructors.end()) {
-        errors += std::format("Constructor for field {} was not found!", registry->GetDescFieldName(field.id));
+      if (fieldConstructors.size() != parsedFields.size()) {
+        errors += std::format(
+          "Mismatched fields to construct desc {}: expected %d, but actual %d!",
+          registry->GetDescTypeName(descTypeId),
+          fieldConstructors.size(),
+          parsedFields.size());
         return std::nullopt;
       }
 
-      FieldConstructor& fieldConstructor = *it;
-      const bool fieldConstructed = fieldConstructor.constructor(errors, std::move(value), descStorage);
-      if (!fieldConstructed) {
-        errors += std::format("Failed to construct field {}!", registry->GetDescFieldName(field.id));
-        return std::nullopt;
-      }
-    }
+      for (auto& [field, value] : parsedFields) {
+        auto it = std::find_if(fieldConstructors.begin(), fieldConstructors.end(), [fieldId = field.id](const FieldConstructor& constructor) {
+          return constructor.fieldId == fieldId;
+        });
+        if (it == fieldConstructors.end()) {
+          errors += std::format("Constructor for field {} was not found!", registry->GetDescFieldName(field.id));
+          return std::nullopt;
+        }
 
-    return std::any_cast<DescType>(std::move(descStorage));
+        FieldConstructor& fieldConstructor = *it;
+        const bool fieldConstructed = fieldConstructor.constructor(errors, std::move(value), descStorage);
+        if (!fieldConstructed) {
+          errors += std::format("Failed to construct field {}!", registry->GetDescFieldName(field.id));
+          return std::nullopt;
+        }
+      }
+
+      return std::any_cast<DescType>(std::move(descStorage));
+    };
+  }
+
+  Desc::Unpack unpack = [](std::string& errors, std::vector<std::any> values) {
+    std::vector<DescType> unpackedValues;
+    unpackedValues.reserve(values.size());
+    for (std::any& value : values) {
+      DescType* unpackedValue = std::any_cast<DescType>(&value);
+      if (!unpackedValue) {
+        errors += std::format("Mismatched type of array[{}]: expected {}, but actual {}!", unpackedValues.size(), typeid(DescType).name(), value.type().name());
+        unpackedValues.emplace_back();
+        continue;
+      }
+
+      unpackedValues.push_back(std::move(*unpackedValue));
+    }
+    return std::any(std::move(unpackedValues));
   };
+
 
   Desc desc{
     std::move(_name),
     std::move(_fields),
-    std::move(descInstanceConstructor)
+    std::move(descInstanceConstructor),
+    std::move(unpack)
   };
   const DescTypeId typeId = _registry->_RegisterDesc<DescType>(std::move(desc));
   if (typeId == DescTypeId::Invalid) {
@@ -269,14 +311,18 @@ DescTypeId DescRegistry::FindDescTypeId() const
 
 DescRegistry::DescRegistry()
 {
-  _RegisterDesc<int32_t>(Desc{"int32"});
-  _RegisterDesc<std::string>(Desc{"string"});
+  Register<int32_t>("int32").Build();
+  Register<std::string>("string").Build();
 
-  struct ArrayTag {};
-  _RegisterDesc<ArrayTag>(Desc{"array"});
+  struct ArrayTag
+  {};
 
-  struct ObjectTag {};
-  _RegisterDesc<ObjectTag>(Desc{"object"});
+  Register<ArrayTag>("array").Build();
+
+  struct ObjectTag
+  {};
+
+  Register<ObjectTag>("object").Build();
 }
 
 DescTypeId DescRegistry::FindDescTypeId(std::string_view name) const
@@ -346,9 +392,10 @@ DescFieldId DescRegistry::_GetOrRegisterField(std::string_view field)
 void DescRegistry::_LogError(std::string error) const
 {
   std::println("DescRegistry > {}", std::move(error));
+  std::fflush(stdout);
 }
 
-std::optional<std::any> DescParser::RecursiveParse(const DescRegistry& registry, std::string& errorBuffer, DescTypeId descTypeId, nlohmann::json rootJson)
+std::optional<std::any> DescParser::RecursiveParse(const DescRegistry& registry, std::string& errorBuffer, nlohmann::json rootJson)
 {
   const nlohmann::json typeJson = rootJson.at("__type");
   if (!typeJson.is_string()) {
@@ -357,13 +404,14 @@ std::optional<std::any> DescParser::RecursiveParse(const DescRegistry& registry,
   }
 
   const std::string_view parsedType = typeJson.get<std::string_view>();
-  const std::string_view descName = registry.GetDescTypeName(descTypeId);
-  if (parsedType != descName) {
-    errorBuffer += std::format("Mismatched type of desc: expected \"{}\", but actual \"{}\"\n", descName, parsedType);
+  const DescTypeId descTypeId = registry.FindDescTypeId(parsedType);
+  if (descTypeId == DescTypeId::Invalid) {
+    errorBuffer += std::format("Desc type \"{}\" was not registered!\n", parsedType);
     return std::nullopt;
   }
 
   if (descTypeId == DescTypeId::Array) {
+    // parse & unpack
     return RecursiveParseArray(registry, errorBuffer, std::move(rootJson));
   }
   if (rootJson.contains("__data")) {
@@ -400,7 +448,7 @@ std::optional<std::any> DescParser::RecursiveObjectParse(const DescRegistry& reg
       continue;
     }
 
-    std::optional<std::any> parsedField = RecursiveParse(registry, errorBuffer, field.type, std::move(fieldsJson.at(fieldName)));
+    std::optional<std::any> parsedField = RecursiveParse(registry, errorBuffer, std::move(fieldsJson.at(fieldName)));
     if (!parsedField) {
       errorBuffer += std::format("Failed to parse field \"{}\" of desc {}!\n", fieldName, descName);
       break;
@@ -435,6 +483,12 @@ std::optional<std::any> DescParser::RecursiveParseArray(const DescRegistry& regi
     return std::nullopt;
   }
 
+  const Desc* desc = registry.FindDesc(subtypeId);
+  if (!desc) {
+    errorBuffer += std::format("Internal error: failed to find desc for type \"{}\"!\n", subtype);
+    return std::nullopt;
+  }
+
   if (!dataJson.contains("__values")) {
     errorBuffer += std::format("Internal error: array requires a \"__values\" field !\n");
     return std::nullopt;
@@ -449,7 +503,7 @@ std::optional<std::any> DescParser::RecursiveParseArray(const DescRegistry& regi
   std::vector<std::any> values;
   values.reserve(valuesJson.size());
   for (nlohmann::json& valueJson : valuesJson) {
-    std::optional<std::any> parsedValue = RecursiveParse(registry, errorBuffer, subtypeId, std::move(valueJson));
+    std::optional<std::any> parsedValue = RecursiveParse(registry, errorBuffer, std::move(valueJson));
     if (!parsedValue) {
       errorBuffer += std::format("Failed to parse values[{}] of array!\n", values.size());
     }
@@ -457,7 +511,7 @@ std::optional<std::any> DescParser::RecursiveParseArray(const DescRegistry& regi
     values.emplace_back(std::move(parsedValue).value_or(std::any()));
   }
 
-  return std::move(values);
+  return desc->unpack(errorBuffer, std::move(values));
 }
 
 std::optional<std::any> DescParser::RecursiveParsePrimitive(const DescRegistry& registry, std::string& errorBuffer, DescTypeId descTypeId, nlohmann::json rootJson)
@@ -511,26 +565,6 @@ constexpr std::string_view SerializedArrayOfSimpleItems = R"(
   ]
 })";
 
-constexpr std::string_view SerializedArrayOfIntegers = R"(
-{
-  "__type": "array",
-  "__subtype": "int",
-  "__values": [
-    {
-      "__type": "int",
-      "__data": 1
-    },
-    {
-      "__type": "int",
-      "__data": 2
-    },
-    {
-      "__type": "int",
-      "__data": 3
-    },
-  ]
-})";
-
 struct SimpleItem
 {
   int x{ 0 };
@@ -556,6 +590,7 @@ TEST(DescRegistryTest, ParseInt32)
 })";
 
   const std::optional<int32_t> parsedItem = DescParser::Parse<int32_t>(descRegistry, SerializedData);
+  ASSERT_TRUE(parsedItem.has_value());
   ASSERT_EQ(*parsedItem, 100);
 }
 
@@ -569,7 +604,8 @@ TEST(DescRegistryTest, ParseString)
 })";
 
   const std::optional<std::string> parsedItem = DescParser::Parse<std::string>(descRegistry, SerializedData);
-  ASSERT_EQ(*parsedItem, std::string_view{"data"});
+  ASSERT_TRUE(parsedItem.has_value());
+  ASSERT_EQ(*parsedItem, std::string_view{ "data" });
 }
 
 TEST(DescRegistryTest, ParseSimpleItem)
@@ -577,8 +613,8 @@ TEST(DescRegistryTest, ParseSimpleItem)
   DescRegistry descRegistry;
   descRegistry
     .Register<SimpleItem>("simple_item")
-    .AddField("x", &SimpleItem::x)
-    .AddField("y", &SimpleItem::y)
+    .AddField<&SimpleItem::x>("x")
+    .AddField<&SimpleItem::y>("y")
     .Build();
 
   constexpr std::string_view SerializedData = R"(
@@ -597,6 +633,7 @@ TEST(DescRegistryTest, ParseSimpleItem)
 })";
 
   const std::optional<SimpleItem> parsedItem = DescParser::Parse<SimpleItem>(descRegistry, SerializedData);
+  ASSERT_TRUE(parsedItem.has_value());
   ASSERT_EQ(parsedItem->x, 10);
   ASSERT_EQ(parsedItem->y, 20);
 }
@@ -606,14 +643,14 @@ TEST(DescRegistryTest, ParseComplexItem)
   DescRegistry descRegistry;
   descRegistry
     .Register<SimpleItem>("simple_item")
-    .AddField("x", &SimpleItem::x)
-    .AddField("y", &SimpleItem::y)
+    .AddField<&SimpleItem::x>("x")
+    .AddField<&SimpleItem::y>("y")
     .Build();
 
   descRegistry
     .Register<ComplexItem>("complex_item")
-    .AddField("a", &ComplexItem::a)
-    .AddField("b", &ComplexItem::b)
+    .AddField<&ComplexItem::a>("a")
+    .AddField<&ComplexItem::b>("b")
     .Build();
 
   constexpr std::string_view SerializedData = R"(
@@ -650,8 +687,40 @@ TEST(DescRegistryTest, ParseComplexItem)
 })";
 
   const std::optional<ComplexItem> parsedItem = DescParser::Parse<ComplexItem>(descRegistry, SerializedData);
+  ASSERT_TRUE(parsedItem.has_value());
   ASSERT_EQ(parsedItem->a.x, 1);
   ASSERT_EQ(parsedItem->a.y, 2);
   ASSERT_EQ(parsedItem->b.x, 3);
   ASSERT_EQ(parsedItem->b.y, 4);
+}
+
+TEST(DescRegistryTest, ParseArrayOfInt)
+{
+  DescRegistry descRegistry;
+  constexpr std::string_view SerializedArrayOfIntegers = R"(
+{
+  "__type": "array",
+  "__subtype": "int32",
+  "__values": [
+    {
+      "__type": "int32",
+      "__data": 1
+    },
+    {
+      "__type": "int32",
+      "__data": 2
+    },
+    {
+      "__type": "int32",
+      "__data": 3
+    }
+  ]
+})";
+
+  const std::optional<std::vector<int32_t>> parsedItem = DescParser::Parse<std::vector<int32_t>>(descRegistry, SerializedArrayOfIntegers);
+  ASSERT_TRUE(parsedItem.has_value());
+  ASSERT_EQ(parsedItem->size(), 3);
+  ASSERT_EQ(parsedItem->at(0), 1);
+  ASSERT_EQ(parsedItem->at(1), 2);
+  ASSERT_EQ(parsedItem->at(2), 3);
 }
