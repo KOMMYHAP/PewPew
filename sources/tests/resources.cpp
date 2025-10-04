@@ -214,7 +214,7 @@ std::optional<DescType> DescParser::Parse(const DescRegistry& registry, std::str
   if (!parsedTypedDesc) {
     errorBuffer = std::format(
       "Mismatched type of parsed desc, expected \"{}\", but actual \"{}\"!",
-      registry.GetDescTypeName(registry.FindDescTypeId<DescType>()),
+      typeid(DescType).name(),
       parsedDesc->type().name());
     registry._LogError(std::move(errorBuffer));
     return std::nullopt;
@@ -723,4 +723,101 @@ TEST(DescRegistryTest, ParseArrayOfInt)
   ASSERT_EQ(parsedItem->at(0), 1);
   ASSERT_EQ(parsedItem->at(1), 2);
   ASSERT_EQ(parsedItem->at(2), 3);
+}
+
+TEST(DescRegistryTest, ParseArrayOfComplexItem)
+{
+  DescRegistry descRegistry;
+  descRegistry
+    .Register<SimpleItem>("simple_item")
+    .AddField<&SimpleItem::x>("x")
+    .AddField<&SimpleItem::y>("y")
+    .Build();
+
+  descRegistry
+    .Register<ComplexItem>("complex_item")
+    .AddField<&ComplexItem::a>("a")
+    .AddField<&ComplexItem::b>("b")
+    .Build();
+  constexpr std::string_view SerializedArrayOfComplexItems = R"(
+{
+  "__type": "array",
+  "__subtype": "complex_item",
+  "__values": [
+    {
+      "__type": "complex_item",
+      "__fields": {
+        "a": {
+          "__type": "simple_item",
+          "__fields": {
+            "x": {
+              "__type": "int32",
+              "__data": 1
+            },
+            "y": {
+              "__type": "int32",
+              "__data": 2
+            }
+          }
+        },
+        "b": {
+          "__type": "simple_item",
+          "__fields": {
+            "x": {
+              "__type": "int32",
+              "__data": 3
+            },
+            "y": {
+              "__type": "int32",
+              "__data": 4
+            }
+          }
+        }
+      }
+    },
+    {
+      "__type": "complex_item",
+      "__fields": {
+        "a": {
+          "__type": "simple_item",
+          "__fields": {
+            "x": {
+              "__type": "int32",
+              "__data": 10
+            },
+            "y": {
+              "__type": "int32",
+              "__data": 20
+            }
+          }
+        },
+        "b": {
+          "__type": "simple_item",
+          "__fields": {
+            "x": {
+              "__type": "int32",
+              "__data": 30
+            },
+            "y": {
+              "__type": "int32",
+              "__data": 40
+            }
+          }
+        }
+      }
+    }
+  ]
+})";
+
+  const auto parsedItem = DescParser::Parse<std::vector<ComplexItem>>(descRegistry, SerializedArrayOfComplexItems);
+  ASSERT_TRUE(parsedItem.has_value());
+  ASSERT_EQ(parsedItem->size(), 2);
+  ASSERT_EQ(parsedItem->at(0).a.x, 1);
+  ASSERT_EQ(parsedItem->at(0).a.y, 2);
+  ASSERT_EQ(parsedItem->at(0).b.x, 3);
+  ASSERT_EQ(parsedItem->at(0).b.y, 4);
+  ASSERT_EQ(parsedItem->at(1).a.x, 10);
+  ASSERT_EQ(parsedItem->at(1).a.y, 20);
+  ASSERT_EQ(parsedItem->at(1).b.x, 30);
+  ASSERT_EQ(parsedItem->at(1).b.y, 40);
 }
