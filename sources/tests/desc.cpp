@@ -9,40 +9,6 @@
 
 namespace {
 
-constexpr std::string_view SerializedArrayOfSimpleItems = R"(
-{
-  "__type": "array",
-  "__subtype": "simple_item",
-  "__values": [
-    {
-      "__type": "simple_item",
-      "__fields": {
-        "x": {
-          "__type": "int32",
-          "__data": 20
-        },
-        "y": {
-          "__type": "int32",
-          "__data": 10
-        }
-      }
-    },
-    {
-      "__type": "simple_item",
-      "__fields": {
-        "x": {
-          "__type": "int32",
-          "__data": 200
-        },
-        "y": {
-          "__type": "int32",
-          "__data": 100
-        }
-      }
-    },
-  ]
-})";
-
 struct SimpleItem
 {
   int x{ 0 };
