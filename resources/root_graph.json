@@ -1,8 +1,17 @@
 {
-  "resources": [
-    {
-      "path": "game_settings.json",
-      "type": "game_settings"
+  "__type": "resource_graph",
+  "__fields": {
+    "nodes": {
+      "__type": "array",
+      "__subtype": "resource_node",
+      "__values": [
+        {
+          "__type": "resource_node",
+          "__fields": {
+            "path": "game_settings.json"
+          }
+        }
+      ]
     }
-  ]
+  }
 }

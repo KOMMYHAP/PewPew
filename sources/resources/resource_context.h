@@ -1,6 +1,6 @@
 #pragma once
 
-#include "resource_id.h"
+#include "resource_registry.h"
 
 class ResourceContext
 {

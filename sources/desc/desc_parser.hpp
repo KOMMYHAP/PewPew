@@ -2,22 +2,34 @@
 #include "desc_parser.h"
 
 template<class DescType>
-std::optional<DescType> DescParser::Parse(const DescRegistry& registry, std::string_view data)
+std::optional<DescType> DescParser::TypedParse(const DescRegistry& registry, std::string_view data)
 {
-  std::string errorBuffer;
-  std::optional<std::any> parsedDesc = AbstractParse(registry, errorBuffer, data);
-  if (!parsedDesc) {
-    registry._LogError(std::move(errorBuffer));
+  std::string errors;
+  std::optional<std::any> parsedData = StartParse(registry, errors, data);
+  if (!parsedData) {
+    registry._LogError(std::move(errors));
     return std::nullopt;
   }
 
-  DescType* parsedTypedDesc = std::any_cast<DescType>(&parsedDesc.value());
-  if (!parsedTypedDesc) {
-    errorBuffer = std::format(
+  const std::type_index parsedDataTypeIndex = std::type_index{ parsedData->type() };
+  std::optional<DescType> parsedDesc = EndParse<DescType>(std::move(parsedData).value());
+  if (!parsedDesc) {
+    errors = std::format(
       "Mismatched type of parsed desc, expected \"{}\", but actual \"{}\"!",
       typeid(DescType).name(),
-      parsedDesc->type().name());
-    registry._LogError(std::move(errorBuffer));
+      parsedDataTypeIndex.name());
+    registry._LogError(std::move(errors));
+    return std::nullopt;
+  }
+
+  return parsedDesc;
+}
+
+template<class DescType>
+std::optional<DescType> DescParser::EndParse(std::any parsedData)
+{
+  DescType* parsedTypedDesc = std::any_cast<DescType>(&parsedData);
+  if (!parsedTypedDesc) {
     return std::nullopt;
   }
 

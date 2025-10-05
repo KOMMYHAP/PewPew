@@ -1,20 +1,20 @@
 #pragma once
+#include "desc.h"
 #include "resource_id.h"
 
 class ResourceURL
 {
 public:
   ResourceURL() = default;
+  ResourceURL(DescTypeId resourceType, ResourcePathId pathId);
 
-  DescTypeId GetType() const { return _type; }
+  DescTypeId GetType() const { return _resourceType; }
 
-  ResourcePathId GetPath() const { return _path; }
+  ResourcePathId GetPath() const { return _resourcePath; }
 
   auto operator<=>(const ResourceURL&) const = default;
 
 private:
-  ResourceURL(std::string_view type, std::string_view path);
-
-  DescTypeId _type{ DescTypeId::Invalid };
-  ResourcePathId _path{ ResourcePathId::Invalid };
+  DescTypeId _resourceType{ DescTypeId::Invalid };
+  ResourcePathId _resourcePath{ ResourcePathId::Invalid };
 };

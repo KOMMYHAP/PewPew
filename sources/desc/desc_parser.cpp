@@ -2,7 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
-std::optional<std::any> DescParser::AbstractParse(const DescRegistry& registry, std::string& errorBuffer, std::string_view data)
+std::optional<std::any> DescParser::StartParse(const DescRegistry& registry, std::string & errors, std::string_view data)
 {
   nlohmann::json rootJson;
   try {
@@ -12,7 +12,7 @@ std::optional<std::any> DescParser::AbstractParse(const DescRegistry& registry, 
     return std::nullopt;
   }
 
-  return RecursiveParse(registry, errorBuffer, std::move(rootJson));
+  return RecursiveParse(registry, errors, std::move(rootJson));
 }
 
 std::optional<std::any> DescParser::RecursiveParse(const DescRegistry& registry, std::string& errorBuffer, nlohmann::json rootJson)

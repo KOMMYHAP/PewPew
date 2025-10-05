@@ -11,10 +11,14 @@ class DescParser
 {
 public:
   template<class DescType>
-  static std::optional<DescType> Parse(const DescRegistry& registry, std::string_view data);
+  static std::optional<DescType> TypedParse(const DescRegistry& registry, std::string_view data);
+
+  static std::optional<std::any> StartParse(const DescRegistry& registry, std::string& errorBuffer, std::string_view data);
+
+  template<class DescType>
+  static std::optional<DescType> EndParse(std::any parsedData);
 
 private:
-  static std::optional<std::any> AbstractParse(const DescRegistry& registry, std::string& errorBuffer, std::string_view data);
   static std::optional<std::any> RecursiveParse(const DescRegistry& registry, std::string& errorBuffer, nlohmann::json dataJson);
   static std::optional<std::any> RecursiveObjectParse(const DescRegistry& registry, std::string& errorBuffer, DescTypeId descTypeId, nlohmann::json rootJson);
   static std::optional<std::any> RecursiveParseArray(const DescRegistry& registry, std::string& errorBuffer, nlohmann::json dataJson);

@@ -33,7 +33,7 @@ TEST(DescRegistryTest, ParseInt32)
   "__data": 100
 })";
 
-  const std::optional<int32_t> parsedItem = DescParser::Parse<int32_t>(descRegistry, SerializedData);
+  const std::optional<int32_t> parsedItem = DescParser::TypedParse<int32_t>(descRegistry, SerializedData);
   ASSERT_TRUE(parsedItem.has_value());
   ASSERT_EQ(*parsedItem, 100);
 }
@@ -47,7 +47,7 @@ TEST(DescRegistryTest, ParseString)
   "__data": "data"
 })";
 
-  const std::optional<std::string> parsedItem = DescParser::Parse<std::string>(descRegistry, SerializedData);
+  const std::optional<std::string> parsedItem = DescParser::TypedParse<std::string>(descRegistry, SerializedData);
   ASSERT_TRUE(parsedItem.has_value());
   ASSERT_EQ(*parsedItem, std::string_view{ "data" });
 }
@@ -75,7 +75,7 @@ TEST(DescRegistryTest, ParseSimpleItem)
   }
 })";
 
-  const std::optional<SimpleItem> parsedItem = DescParser::Parse<SimpleItem>(descRegistry, SerializedData);
+  const std::optional<SimpleItem> parsedItem = DescParser::TypedParse<SimpleItem>(descRegistry, SerializedData);
   ASSERT_TRUE(parsedItem.has_value());
   ASSERT_EQ(parsedItem->x, 10);
   ASSERT_EQ(parsedItem->y, 20);
@@ -127,7 +127,7 @@ TEST(DescRegistryTest, ParseComplexItem)
   }
 })";
 
-  const std::optional<ComplexItem> parsedItem = DescParser::Parse<ComplexItem>(descRegistry, SerializedData);
+  const std::optional<ComplexItem> parsedItem = DescParser::TypedParse<ComplexItem>(descRegistry, SerializedData);
   ASSERT_TRUE(parsedItem.has_value());
   ASSERT_EQ(parsedItem->a.x, 1);
   ASSERT_EQ(parsedItem->a.y, 2);
@@ -158,7 +158,7 @@ TEST(DescRegistryTest, ParseArrayOfInt)
   ]
 })";
 
-  const std::optional<std::vector<int32_t>> parsedItem = DescParser::Parse<std::vector<int32_t>>(descRegistry, SerializedArrayOfIntegers);
+  const std::optional<std::vector<int32_t>> parsedItem = DescParser::TypedParse<std::vector<int32_t>>(descRegistry, SerializedArrayOfIntegers);
   ASSERT_TRUE(parsedItem.has_value());
   ASSERT_EQ(parsedItem->size(), 3);
   ASSERT_EQ(parsedItem->at(0), 1);
@@ -248,7 +248,7 @@ TEST(DescRegistryTest, ParseArrayOfComplexItem)
   ]
 })";
 
-  const auto parsedItem = DescParser::Parse<std::vector<ComplexItem>>(descRegistry, SerializedArrayOfComplexItems);
+  const auto parsedItem = DescParser::TypedParse<std::vector<ComplexItem>>(descRegistry, SerializedArrayOfComplexItems);
   ASSERT_TRUE(parsedItem.has_value());
   ASSERT_EQ(parsedItem->size(), 2);
   ASSERT_EQ(parsedItem->at(0).a.x, 1);

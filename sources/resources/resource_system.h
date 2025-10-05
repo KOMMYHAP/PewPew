@@ -1,6 +1,6 @@
 #pragma once
 #include "resource_adapter.h"
-#include "resource_id.h"
+#include "resource_registry.h"
 #include "resource_url.h"
 
 class DescRegistry
@@ -8,8 +8,8 @@ class DescRegistry
 public:
   explicit DescRegistry(std::vector<std::filesystem::path> layers);
 
-  ResourceIdStorage& ModifyIdStorage() { return _idStorage; }
-  const ResourceIdStorage& GetIdStorage() const { return _idStorage; }
+  ResourcesRegistry& ModifyIdStorage() { return _idStorage; }
+  const ResourcesRegistry& GetIdStorage() const { return _idStorage; }
 
   template<class T, class... Args>
     requires std::constructible_from<T, Args...>
@@ -25,7 +25,7 @@ private:
 
 private:
   std::vector<std::filesystem::path> _layers; //< order is matter
-  ResourceIdStorage _idStorage;
+  ResourcesRegistry _idStorage;
   std::map<std::string_view, DescTypeId> _resourceTypeToId;
   std::vector<std::unique_ptr<ResourceAdapter>> _resourceLoaders;
 };

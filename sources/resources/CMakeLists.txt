@@ -9,6 +9,7 @@ target_sources(pew_resources
         resource_system.cpp
         resource_id.cpp
         resource_context.cpp
+        resource_registry.cpp
         PUBLIC
         resource_error.h
         resource_adapter.h
@@ -17,9 +18,11 @@ target_sources(pew_resources
         resource_id.h
         resource_context.h
         resource_context.hpp
+        resource_registry.h
+        resource_desc.h
 )
 target_include_directories(pew_resources PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_link_libraries(pew_resources PRIVATE pew_utils)
+target_link_libraries(pew_resources PUBLIC pew_utils pew_desc)
 target_precompile_headers(pew_resources PRIVATE resource_pch.h)
 target_compile_features(pew_resources PRIVATE cxx_std_23)
