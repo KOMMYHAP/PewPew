@@ -14,7 +14,7 @@ add_executable(pew_auto_tests
         resource_graph_tests.cpp
 )
 target_compile_features(pew_auto_tests PRIVATE cxx_std_23)
-target_link_libraries(pew_auto_tests PRIVATE gtest_main pew_utils pew_desc)
+target_link_libraries(pew_auto_tests PRIVATE gtest_main pew_utils pew_desc pew_resources)
 
 enable_testing()
 include(GoogleTest)

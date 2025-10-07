@@ -38,14 +38,14 @@ ResourceNodeLinkAdapter::ResourceNodeLinkAdapter(const ResourceGraph& graph, con
 {
 }
 
-const ResourceNode& ResourceNodeLinkAdapter::GetParent() const
+const ResourceNode& ResourceNodeLinkAdapter::GetAncestor() const
 {
-  return _graph->GetNode(GetParentId());
+  return _graph->GetNode(GetAncestorId());
 }
 
-ResourceNodeId ResourceNodeLinkAdapter::GetParentId() const
+ResourceNodeId ResourceNodeLinkAdapter::GetAncestorId() const
 {
-  return _link->GetParentId();
+  return _link->GetAncestorId();
 }
 
 const std::vector<ResourceNodeId>& ResourceNodeLinkAdapter::GetChildrenIds() const
@@ -88,10 +88,6 @@ ResourceNodeLinkAdapter ResourceNodeLink::Unwrap(const ResourceGraph& graph) con
   return ResourceNodeLinkAdapter{ graph, *this };
 }
 
-ResourceGraph::ResourceGraph(const std::filesystem::path& graphPath)
-{
-  RequireNode(graphPath);
-}
 
 void ResourceGraph::VisitBreadthFirst(Visitor visitor) const
 {
@@ -101,27 +97,30 @@ void ResourceGraph::VisitBreadthFirst(Visitor visitor) const
     const ResourceNodeId id = nodesToVisit.front();
     nodesToVisit.pop();
 
+    const VisitorStep step = visitor(id);
+    if (step == VisitorStep::Stop) {
+      break;
+    }
+
     std::optional<ResourceNodeLinkAdapter> link = FindDependencyLink(id);
     if (!link.has_value()) {
       assert(false && "cannot find link for one of child node!");
       continue;
     }
-    visitor(*link);
-
     for (const ResourceNodeId& childId : link->GetChildrenIds()) {
       nodesToVisit.push(childId);
     }
   }
 }
 
-void ResourceGraph::LinkDependency(const std::filesystem::path& nodeOwner, const std::filesystem::path& requiredNode)
+void ResourceGraph::LinkDependency(ResourceNodeId from, ResourceNodeId to)
 {
-  const ResourceNodeId nodeOwnerId = RequireNode(nodeOwner);
-  const ResourceNodeId requiredNodeId = RequireNode(requiredNode);
+  const ResourceNodeId nodeOwnerId = from;
+  const ResourceNodeId requiredNodeId = to;
 
   ResourceNodeLink* nodeOwnerLink = nullptr;
-  const auto it = std::ranges::find_if(_dependenciesGraph, [requiredNodeId](const ResourceNodeLink& link) {
-    return link.GetParentId() == requiredNodeId;
+  const auto it = std::ranges::find_if(_dependenciesGraph, [nodeOwnerId](const ResourceNodeLink& link) {
+    return link.GetAncestorId() == nodeOwnerId;
   });
   if (it == _dependenciesGraph.end()) {
     nodeOwnerLink = &_dependenciesGraph.emplace_back(nodeOwnerId);
@@ -146,8 +145,8 @@ ResourceNode& ResourceGraph::ModifyNode(ResourceNodeId id)
 
 std::optional<ResourceNodeLinkAdapter> ResourceGraph::FindDependencyLink(ResourceNodeId id) const
 {
-  auto it = std::ranges::find_if(_dependenciesGraph, [id, this](const ResourceNodeLink& link) {
-    return id == link.GetParentId();
+  auto it = std::ranges::find_if(_dependenciesGraph, [id](const ResourceNodeLink& link) {
+    return id == link.GetAncestorId();
   });
   if (it == _dependenciesGraph.end()) {
     return std::nullopt;
@@ -155,7 +154,7 @@ std::optional<ResourceNodeLinkAdapter> ResourceGraph::FindDependencyLink(Resourc
   return it->Unwrap(*this);
 }
 
-ResourceNodeId ResourceGraph::RequireNode(const std::filesystem::path& path)
+ResourceNodeId ResourceGraph::CreateNode(const std::filesystem::path& path)
 {
   const size_t nodeIndex = _nodes.size();
   const ResourceNodeId nextNodeId = static_cast<ResourceNodeId>(nodeIndex);

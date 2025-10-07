@@ -7,7 +7,6 @@ target_sources(pew_resources
         resource_adapter.cpp
         resource_url.cpp
         resource_system.cpp
-        resource_id.cpp
         resource_context.cpp
         resource_registry.cpp
         PUBLIC

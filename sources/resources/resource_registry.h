@@ -50,8 +50,8 @@ class ResourceNodeLinkAdapter
 public:
   ResourceNodeLinkAdapter(const ResourceGraph& graph, const ResourceNodeLink& link);
 
-  const ResourceNode& GetParent() const;
-  ResourceNodeId GetParentId() const;
+  const ResourceNode& GetAncestor() const;
+  ResourceNodeId GetAncestorId() const;
   const std::vector<ResourceNodeId>& GetChildrenIds() const;
 
   ResourceNodeIterator begin() const;
@@ -70,7 +70,7 @@ public:
   void Add(ResourceNodeId child);
   ResourceNodeLinkAdapter Unwrap(const ResourceGraph& graph) const;
 
-  ResourceNodeId GetParentId() const { return _parent; }
+  ResourceNodeId GetAncestorId() const { return _parent; }
 
   const std::vector<ResourceNodeId>& GetChildrenIds() const { return _children; }
 
@@ -87,17 +87,17 @@ struct ResourceNode
 class ResourceGraph
 {
 public:
-  ResourceGraph(const std::filesystem::path& graphPath);
+  ResourceNodeId CreateNode(const std::filesystem::path& path);
 
   enum class VisitorStep
   {
     Continue,
     Stop
   };
-  using Visitor = std::move_only_function<VisitorStep(const ResourceNodeLinkAdapter&)>;
+  using Visitor = std::move_only_function<VisitorStep(const ResourceNodeId&)>;
   void VisitBreadthFirst(Visitor visitor) const;
 
-  void LinkDependency(const std::filesystem::path& nodeOwner, const std::filesystem::path& requiredNode);
+  void LinkDependency(ResourceNodeId from, ResourceNodeId to);
 
   const ResourceNode& GetNode(ResourceNodeId id) const;
   ResourceNode& ModifyNode(ResourceNodeId id);
@@ -105,9 +105,6 @@ public:
   std::optional<ResourceNodeLinkAdapter> FindDependencyLink(ResourceNodeId id) const;
 
 private:
-  ResourceNodeId RequireNode(const std::filesystem::path& path);
-
-  ResourceNodeId _root{ ResourceNodeId::Invalid };
   std::vector<ResourceNode> _nodes;
   std::unordered_map<std::filesystem::path, ResourceNodeId> _indexNodesByPath;
   std::vector<ResourceNodeLink> _dependenciesGraph;
